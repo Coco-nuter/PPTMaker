@@ -25,7 +25,7 @@ MVP 需要在 Windows 上低成本部署和调试，同时为后续前后端拆�
 | 模型访问 | 提供商适配器 | 首个实现可用 OpenAI Python SDK，但领域层不依赖 SDK 类型 |
 | 素材解析 | MarkItDown | 将常见 Office/PDF 文件转成 Markdown |
 | PPTX 生成 | python-pptx | 第一版生成原生可编辑对象 |
-| PPTX 预览 | LibreOffice + PyMuPDF | PPTX 转 PDF，再转逐页 PNG |
+| PPTX 预览 | Microsoft PowerPoint COM + pywin32 | 独立子进程逐页调用 `Slide.Export` 生成 PNG |
 | 持久化 | 本地项目目录 | JSON 版本和文件产物；MVP 不使用数据库 |
 | 测试 | pytest + Ruff | 单元、集成、端到端和静态检查 |
 
@@ -53,10 +53,10 @@ Streamlit 应用
         │            ├─ 上传文件
         │            ├─ 解析材料
         │            ├─ JSON 版本
-        │            └─ PPTX/PDF/PNG
+        │            └─ PPTX/PNG
         │
-        └────────► LibreOffice 进程
-                     └─ PPTX → PDF
+        └────────► PowerPoint COM 子进程
+                     └─ PPTX → 逐页 PNG
 ```
 
 ## 4. 模块边界
@@ -92,7 +92,7 @@ src/pptx_renderer.py
 └─ DeckSpec + 资源注册表 → PPTX
 
 src/preview.py
-└─ PPTX → PDF → PNG；管理外部进程、超时与错误
+└─ PPTX → PowerPoint COM → PNG；管理独立子进程、超时、清理与错误
 
 src/qa.py
 └─ 结构、内容容量、引用、文件完整性和预览一致性检查
@@ -112,7 +112,7 @@ UI/工作流
         ▼
 领域模型（models）
 
-基础设施（llm、MarkItDown、python-pptx、LibreOffice）
+基础设施（llm、MarkItDown、python-pptx、pywin32/PowerPoint COM）
 只能通过各自模块进入，不反向污染领域模型。
 ```
 
@@ -180,7 +180,7 @@ QA 结果应结构化，至少包含：
 → 保存 v001 DeckSpec
 → 生成临时 PPTX
 → 文件 QA
-→ 转 PDF/PNG
+→ 用 PowerPoint 导出逐页 PNG
 → 预览 QA
 → 原子提交 v001 产物
 → 允许下载
@@ -243,19 +243,22 @@ QA 结果应结构化，至少包含：
 
 ```text
 当前版本 PPTX
-→ LibreOffice headless 转 PDF
-→ PyMuPDF 转逐页 PNG
-→ 比较 PPTX/DeckSpec/PDF/PNG 页数
+→ 启动独立 Python 子进程
+→ 初始化 COM 并启动独立 PowerPoint 实例
+→ 逐页调用 `Slide.Export` 生成 PNG
+→ 比较 PPTX/DeckSpec/PNG 页数与图片尺寸
 → UI 展示 PNG
 ```
 
 外部进程要求：
 
-- `SOFFICE_PATH` 可配置并在启动时检查。
-- 每个转换使用独立输出目录。
-- 设置超时并捕获 stdout/stderr。
+- 仅在 Windows 启用，启动时验证 Microsoft PowerPoint COM 可用。
+- 主进程对子进程设置超时并捕获 stdout/stderr；超时时终止本次创建的 PowerPoint 进程。
+- COM 线程调用 `CoInitialize`/`CoUninitialize`，并在 `finally` 中关闭 Presentation、退出 PowerPoint。
+- 以只读、无窗口方式打开最终 PPTX，按配置的宽高逐页导出。
+- 每次转换先写独立临时目录；全部验证通过后再原子移动到新的成功目录。
 - 输出文件必须位于当前项目工作区。
-- 并发执行时避免共享 LibreOffice 用户配置目录；实现阶段需验证是否需要独立 profile。
+- 文件名固定为 `slide_NNN.png`，PNG 数量必须等于 PPTX 页数，尺寸必须符合配置。
 
 ## 9. 本地存储
 
@@ -277,7 +280,6 @@ workspace/<project_id>/
 │  ├─ deck_v001.pptx
 │  └─ deck_v002.pptx
 └─ preview/
-   ├─ v001/deck.pdf
    └─ v001/slide_001.png
 ```
 
@@ -323,8 +325,8 @@ workspace/<project_id>/
 2. 所有 source/asset 引用有效。
 3. 内容容量规则无 fail 级问题。
 4. PPTX 成功生成，ZIP/OOXML 基本完整，可再次打开。
-5. LibreOffice 成功转换。
-6. DeckSpec、PDF 和 PNG 页数一致。
+5. PowerPoint COM 成功导出全部 PNG，且进程正确退出。
+6. DeckSpec、PPTX 和 PNG 页数一致，PNG 尺寸符合配置。
 7. QAReport 不含 fail 级问题。
 
 详细测试要求见 [TESTING.md](TESTING.md)。
@@ -352,4 +354,3 @@ MVP 后允许替换：
 - 产品范围：[PRODUCT.md](PRODUCT.md)
 - 测试策略：[TESTING.md](TESTING.md)
 - MVP 执行计划：[exec-plans/active/mvp.md](exec-plans/active/mvp.md)
-

@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-项目已完成 Python 3.12、uv、DeckSpec 数据合同，以及 `cover`、`bullets`、`closing` 三种布局的确定性 PPTX 渲染；尚未实现完整 Demo。
+项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染，以及 `PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路；尚未实现完整 Demo。
 
-当前只安装了第一阶段依赖：Pydantic、pydantic-settings、python-pptx、pytest 和 Ruff。Streamlit、模型 SDK、MarkItDown 和 PyMuPDF 将在对应阶段按计划引入。
+当前运行依赖为 Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。Streamlit、模型 SDK 与 MarkItDown 尚未引入。
 
 MVP 的目标闭环是：
 
@@ -33,8 +33,7 @@ MVP 的目标闭环是：
 | OpenAI Python SDK + Pydantic | 结构化生成 `DeckSpec` 和 `PatchPlan` |
 | [MarkItDown](https://github.com/microsoft/markitdown) | PDF、DOCX、PPTX、XLSX 等素材解析 |
 | [python-pptx](https://python-pptx.readthedocs.io/) | 生成原生可编辑 PPTX |
-| [LibreOffice](https://www.libreoffice.org/download/) | 无界面地将 PPTX 转成 PDF |
-| [PyMuPDF](https://pymupdf.readthedocs.io/) | 将 PDF 页面渲染为预览 PNG |
+| Microsoft PowerPoint + [pywin32](https://pypi.org/project/pywin32/) | 通过 COM 将最终 PPTX 逐页导出为 PNG |
 | pytest + Ruff | 自动化测试和静态检查 |
 
 ## Windows 开发环境准备
@@ -44,8 +43,6 @@ MVP 的目标闭环是：
 ```powershell
 winget install --id Git.Git -e
 winget install --id Microsoft.VisualStudioCode -e
-winget install --id TheDocumentFoundation.LibreOffice -e
-
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
 ```
 
@@ -55,7 +52,12 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 git --version
 uv --version
 uv python install 3.12
-& "C:\Program Files\LibreOffice\program\soffice.exe" --version
+```
+
+本机还需要安装带有效许可的 Microsoft PowerPoint。复制预览配置；默认导出尺寸为 1920×1080：
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 ## 当前可用的开发命令
@@ -67,9 +69,16 @@ uv sync
 uv run pytest -q
 uv run ruff check .
 uv run python src/generate_sample_pptx.py
+uv run python src/generate_sample_preview.py
 ```
 
-最后一条命令读取 `tests/fixtures/sample_deck.json`，生成 `output/sample_deck.pptx`。应用启动命令将在 Streamlit 阶段补充。
+预览命令读取 `tests/fixtures/sample_deck.json`，先生成 `output/sample_deck.pptx`，再由 PowerPoint 把三页分别导出到独立的 `output/preview/preview-*/png/` 目录。应用启动命令将在 Streamlit 阶段补充。
+
+只运行 PowerPoint 真实集成测试：
+
+```powershell
+uv run pytest -m "integration and powerpoint" -q
+```
 
 ## 当前仓库结构
 
@@ -82,7 +91,10 @@ uv run python src/generate_sample_pptx.py
 │  ├─ ARCHITECTURE.md
 │  ├─ TESTING.md
 │  └─ exec-plans/active/mvp.md
-├─ src/ppt_maker/           # 最小 Python 包，业务模块后续添加
+├─ src/config.py            # 环境配置
+├─ src/models.py            # DeckSpec 数据合同
+├─ src/pptx_renderer.py     # 三布局 PPTX 渲染
+├─ src/preview.py           # PowerPoint COM 真实预览
 ├─ tests/                   # 自动化测试与 fixtures
 ├─ pyproject.toml           # 依赖、Ruff 和 pytest 配置
 ├─ uv.lock                  # 可重复安装的依赖锁文件
@@ -91,10 +103,10 @@ uv run python src/generate_sample_pptx.py
 
 ## 安全
 
-- 不要提交 `.env`、API 密钥、用户上传材料、生成的 PPTX/PDF/PNG 或运行时工作区。
+- 不要提交 `.env`、API 密钥、用户上传材料、生成的 PPTX/PNG 或运行时工作区。
 - 当前目录中的任何包含“密钥”或“secret”字样的本地文件均应保持未跟踪状态。
 - 用户文件只能在对应项目工作区内读写，不能用未经校验的文件名拼接任意路径。
 
 ## 开始开发
 
-按 [MVP 执行计划](docs/exec-plans/active/mvp.md) 从 M0 开始。每个任务都列出了产物、独立测试和完成条件；不要跳过前置质量门禁。
+按 [MVP 执行计划](docs/exec-plans/active/mvp.md) 继续当前阶段。每个任务都列出了产物、独立测试和完成条件；不要跳过前置质量门禁。

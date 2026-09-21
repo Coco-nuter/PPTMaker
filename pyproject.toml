@@ -8,6 +8,7 @@ dependencies = [
     "pydantic>=2.13.5",
     "pydantic-settings>=2.15.0",
     "python-pptx>=1.0.2",
+    "pywin32>=311; sys_platform == 'win32'",
 ]
 
 [build-system]
@@ -21,11 +22,12 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not integration'"
 testpaths = ["tests"]
 pythonpath = ["src"]
 markers = [
-    "libreoffice: tests that require a local LibreOffice installation",
+    "integration: tests that require installed desktop applications",
+    "powerpoint: tests that require a local Microsoft PowerPoint installation",
     "provider: tests that call a real model provider and require explicit opt-in",
     "e2e: end-to-end user journey tests",
 ]

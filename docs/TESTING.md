@@ -34,7 +34,7 @@ uv run ruff format --check .
 
 ### 2.2 单元测试
 
-不访问网络、LibreOffice 或真实文件系统边界之外的资源。
+不访问网络、真实 PowerPoint COM 或真实文件系统边界之外的资源。
 
 重点：
 
@@ -57,7 +57,7 @@ uv run ruff format --check .
 - MarkItDown 解析每种支持格式；
 - python-pptx 为每种布局生成有效幻灯片；
 - PPTX 可由 `python-pptx` 再次打开；
-- PyMuPDF 将 fixture PDF 转成预期页数 PNG；
+- PowerPoint 子进程协议、COM 生命周期和 PNG 门禁使用 Mock 验证；
 - storage 写入失败时不移动 current 指针；
 - fake LLM provider 返回结构化数据并触发正常工作流。
 
@@ -69,7 +69,7 @@ uv run ruff format --check .
 
 - 用户请求 + fake provider → DeckSpec → PPTX；
 - 上传 fixture → Markdown → DeckSpec；
-- DeckSpec → PPTX → PDF → PNG；
+- DeckSpec → PPTX → PowerPoint COM → PNG；
 - 当前版本 + 修改指令/fake PatchPlan → 新版本；
 - 失败候选版本 → 上一成功版本仍可下载；
 - 回退 → 生成与目标历史版本一致的结构化内容。
@@ -95,7 +95,6 @@ uv run ruff format --check .
 
 - Microsoft PowerPoint 当前支持版本；
 - WPS Office 当前支持版本；
-- LibreOffice Impress。
 
 检查文件打开、文字编辑、形状编辑、图表编辑、字体、换行、图片裁剪和备注。手工结果记录在发布检查单，不代替自动化测试。
 
@@ -205,25 +204,23 @@ Fixture 规则：
 
 - 规范化 DeckSpec；
 - 幻灯片数量、shape 类型、文本和位置的结构摘要；
-- PDF/PNG 的页数、尺寸和有限视觉差异指标；
+- PNG 的页数、尺寸和有限视觉差异指标；
 - 手工批准的小规模基准图片。
 
 视觉快照变化必须说明原因并人工查看差异。
 
 ## 7. 预览测试
 
-Windows 集成环境需要安装 LibreOffice。测试内容：
+Windows 集成环境需要安装 Microsoft PowerPoint。测试内容：
 
-- 正确发现配置的 `soffice.exe`。
-- 路径包含空格时可以调用。
-- 转换超时会终止并报告错误。
-- 输出目录隔离，不读取其他项目文件。
-- PPTX、PDF 和 PNG 页数一致。
-- PNG 命名顺序稳定。
-- 并发转换不会覆盖彼此产物。
-- LibreOffice 缺失时给出可操作错误，不伪造预览。
+- 普通测试 Mock 子进程或 COM，不启动桌面 PowerPoint。
+- COM 工作线程执行初始化、只读打开、逐页导出以及 `finally` 清理。
+- 转换超时会终止并报告错误，并清理本次创建的 PowerPoint 进程。
+- 临时目录与成功目录隔离，失败不留下半成品、不覆盖旧预览。
+- PPTX 与 PNG 页数一致，PNG 固定命名且尺寸为配置值。
+- PowerPoint 未安装、COM 启动失败、PPTX 打开失败均给出可操作错误。
 
-LibreOffice 集成测试可用 `libreoffice` marker；在未安装环境中明确 skip，而不是静默通过。
+真实测试同时使用 `integration` 和 `powerpoint` marker；普通 `pytest` 默认排除 `integration`，不会自动启动 PowerPoint。
 
 ## 8. 素材与安全测试
 
@@ -248,7 +245,7 @@ LibreOffice 集成测试可用 `libreoffice` marker；在未安装环境中明�
 | Office/PDF 素材解析 |  | 必须 | 必须 | 必须 |  |
 | 9 种页面布局 | 必须 | 必须 | 必须 |  | 必须 |
 | PPTX 文件完整性 |  | 必须 | 必须 | 必须 | 必须 |
-| LibreOffice 预览 |  | 必须 | 必须 | 必须 | 必须 |
+| PowerPoint COM 预览 | 必须 |  | 必须 | 必须 | 必须 |
 | Streamlit 核心流程 |  |  | 必须 | 必须 | 必须 |
 | PowerPoint/WPS 兼容 |  |  |  |  | 必须 |
 | 模型提供商 |  | 契约测试 | 可选 | 可选 | 必须 |
@@ -263,11 +260,20 @@ uv run ruff format --check .
 uv run pytest -m "not provider"
 ```
 
-只运行 LibreOffice 集成：
+只运行 PowerPoint 真实集成：
 
 ```powershell
-uv run pytest -m libreoffice
+uv run pytest -m "integration and powerpoint" -q
 ```
+
+本机必须安装 Microsoft PowerPoint；未安装时集成测试会显示原因并明确跳过。用当前示例文稿执行完整真实预览：
+
+```powershell
+Copy-Item .env.example .env
+uv run python src/generate_sample_preview.py
+```
+
+每次预览写入新的 `output/preview/preview-*` 目录，不覆盖既有成功结果。
 
 显式运行真实提供商契约测试：
 
@@ -304,4 +310,3 @@ P0/P1 阻止任何 MVP 发布；P2 必须有明确降级或已接受记录。
 - 产品范围：[PRODUCT.md](PRODUCT.md)
 - 架构：[ARCHITECTURE.md](ARCHITECTURE.md)
 - MVP 任务：[exec-plans/active/mvp.md](exec-plans/active/mvp.md)
-

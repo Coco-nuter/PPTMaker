@@ -96,7 +96,7 @@
 | 主题 | 蓝白商务 |
 | 每页要点 | 3～6 个 |
 | 版本策略 | 每次成功生成或修改创建不可变版本 |
-| 文件格式 | PPTX；预览中间产物为 PDF/PNG |
+| 文件格式 | PPTX；预览产物为 PNG |
 
 ## 8. 成功标准
 
@@ -140,4 +140,3 @@ MVP 完成后再评估：
 - 测试与质量：[TESTING.md](TESTING.md)
 - 当前执行计划：[exec-plans/active/mvp.md](exec-plans/active/mvp.md)
 - 原始调研：[../AI_PPT_Agent_开源项目与技术方案.md](../AI_PPT_Agent_开源项目与技术方案.md)
-

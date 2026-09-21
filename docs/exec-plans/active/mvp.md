@@ -4,7 +4,7 @@
 
 - 状态：Active
 - 建立日期：2026-09-21
-- 当前阶段：M2 确定性渲染第一阶段完成，仅支持 cover、bullets、closing 三种布局
+- 当前阶段：M3 PowerPoint COM 真实预览链路已通过三页示例验收；九布局与版本绑定留待后续任务
 - 产品范围：[../../PRODUCT.md](../../PRODUCT.md)
 - 架构约束：[../../ARCHITECTURE.md](../../ARCHITECTURE.md)
 - 测试策略：[../../TESTING.md](../../TESTING.md)
@@ -30,7 +30,7 @@
 - [ ] 预览来自当前 PPTX 的实际渲染。
 - [ ] 指定页面、主题和顺序可通过自然语言局部修改。
 - [ ] 每次成功变更生成不可变版本，失败不覆盖旧版本。
-- [ ] PowerPoint、WPS 和 LibreOffice 手工兼容检查通过。
+- [ ] PowerPoint 和 WPS 手工兼容检查通过。
 - [ ] [TESTING.md](../../TESTING.md) 中的 MVP 自动门禁通过。
 
 ---
@@ -58,16 +58,16 @@ uv run python --version
 
 ### M0.2 固定基础依赖与工具配置
 
-- [ ] 添加运行依赖：Streamlit、OpenAI SDK、Pydantic、MarkItDown、python-pptx、PyMuPDF、Pillow、python-dotenv、httpx。
+- [ ] 添加运行依赖：Streamlit、OpenAI SDK、Pydantic、MarkItDown、python-pptx、Pillow、python-dotenv、httpx，以及 Windows 限定的 pywin32。
 - [x] 添加开发依赖：pytest、Ruff。
-- [x] 配置 Ruff 和 pytest markers（`libreoffice`、`provider`、`e2e`）。
+- [x] 配置 Ruff 和 pytest markers（`integration`、`powerpoint`、`provider`、`e2e`）。
 
 产物：更新后的 `pyproject.toml` 和 `uv.lock`。
 
 测试：
 
 ```powershell
-uv run python -c "import streamlit, pptx, pymupdf, pydantic"
+uv run python -c "import streamlit, pptx, pydantic, win32com.client"
 uv run ruff check .
 uv run pytest --collect-only
 ```
@@ -78,9 +78,15 @@ uv run pytest --collect-only
 
 ### M0.3 配置与启动前检查
 
+当前阶段进展：
+
+- [x] 增加 PowerPoint 预览后端、超时和 PNG 尺寸配置，并提供无密钥 `.env.example`。
+- [x] 预览入口验证 Windows、PPTX 文件和 PowerPoint COM 能力，错误包含具体失败阶段。
+- [ ] workspace 根目录及其他启动配置留在后续任务。
+
 - [ ] 定义配置项及默认值，不包含真实密钥。
 - [x] 添加 `.env.example`。
-- [ ] 启动时检查 workspace 根目录和可选 `soffice.exe` 路径。
+- [ ] 启动时检查 workspace 根目录和 PowerPoint COM 能力。
 - [ ] 错误信息包含明确的 Windows 修复方法。
 
 产物：配置模块、示例环境文件、配置测试。
@@ -89,7 +95,7 @@ uv run pytest --collect-only
 
 - 无 `.env` 时只报告缺少的必需配置。
 - 临时环境变量能覆盖默认值。
-- 无效 `SOFFICE_PATH` 返回结构化配置错误。
+- 非 Windows、非法尺寸或不可用 PowerPoint 返回结构化配置错误。
 
 完成条件：三种场景的单元测试通过，测试日志不包含密钥值。
 
@@ -295,47 +301,53 @@ uv run pytest --collect-only
 
 ## M3：PPTX 真实预览
 
-### M3.1 检测 LibreOffice 能力
+### M3.1 检测 PowerPoint COM 能力
 
-- [ ] 从配置读取 `SOFFICE_PATH`。
-- [ ] 验证文件存在并调用 `--version`。
-- [ ] 返回 available/unavailable 和可操作错误。
+- [x] 从配置读取后端、超时和 PNG 尺寸。
+- [x] 验证当前系统为 Windows，并由独立工作进程调用 `DispatchEx("PowerPoint.Application")`。
+- [x] 未安装 PowerPoint 或 COM 启动失败时抛出包含原因的 `PreviewError`。
 
-测试：有效路径、无效路径、包含空格路径和模拟超时。
+测试：非 Windows、未安装 PowerPoint、COM 启动失败和模拟超时。
 
 完成条件：Windows 路径测试通过。
 
 依赖：M0.3。
 
-### M3.2 实现 PPTX → PDF
+### M3.2 实现 PPTX → PowerPoint COM → PNG
 
-- [ ] 使用参数数组调用外部进程，不拼接 shell 命令。
-- [ ] 使用独立临时目录和超时。
-- [ ] 捕获 stdout、stderr 和退出状态。
+- [x] 使用参数数组启动独立 Python 子进程，不拼接 shell 命令。
+- [x] COM 工作线程执行 `CoInitialize`、只读打开、逐页 `Slide.Export` 和 `finally` 清理。
+- [x] 主进程设置超时、捕获 stdout/stderr，并在超时时清理本次 PowerPoint 进程。
 
-测试：fixture PPTX 成功转换；损坏文件和超时返回结构化错误。
+测试：Mock COM 验证生命周期；损坏文件、打开失败、导出失败和超时返回结构化错误。
 
-完成条件：`libreoffice` marker 测试在安装环境通过。
+完成条件：`integration and powerpoint` marker 测试在安装环境通过。
 
 依赖：M2.6、M3.1。
 
-### M3.3 实现 PDF → PNG
+### M3.3 实现 PNG 产物提交
 
-- [ ] 用 PyMuPDF 渲染逐页 PNG。
-- [ ] 固定分辨率、颜色模式和命名顺序。
-- [ ] 返回页面路径和尺寸元数据。
+- [x] 先导出到独立临时目录，全部成功后移动到唯一成功目录。
+- [x] 固定 `slide_NNN.png` 命名顺序，默认尺寸为 1920×1080。
+- [x] 返回页面路径、数量和尺寸元数据。
 
-测试：1 页和多页 fixture；PNG 数量、尺寸、顺序正确。
+测试：PNG 数量、尺寸、顺序正确；失败不覆盖已有成功预览。
 
-完成条件：组件测试不依赖 LibreOffice也可用 PDF fixture 运行。
+完成条件：普通测试完全 Mock 外部进程，不启动 PowerPoint。
 
 依赖：M0.2。
 
 ### M3.4 实现预览一致性门禁
 
-- [ ] 比较 DeckSpec、PPTX、PDF、PNG 页数。
+当前阶段进展：
+
+- [x] 比较 PPTX 和 PNG 页数并校验全部 PNG 尺寸。
+- [x] 每次使用独立输出目录，失败时不会返回或复用旧预览。
+- [ ] DeckSpec 版本、PPTX 哈希和预览绑定留在后续任务。
+
+- [ ] 比较 DeckSpec、PPTX 和 PNG 页数。
 - [ ] 将预览与 DeckSpec 版本/PPTX 哈希绑定。
-- [ ] 转换失败时不复用其他版本的旧预览。
+- [x] 转换失败时不复用其他版本的旧预览。
 
 测试：页数不一致、过期预览和转换失败场景。
 
@@ -345,9 +357,9 @@ uv run pytest --collect-only
 
 ### M3 里程碑门禁
 
-- [ ] 九布局测试 deck 可生成 PDF 和全部 PNG。
+- [ ] 九布局测试 deck 可生成全部 PNG。
 - [ ] 预览元数据绑定正确版本。
-- [ ] LibreOffice 缺失时错误清晰且不伪造成功。
+- [x] PowerPoint 缺失或 COM 失败时错误清晰且不伪造成功。
 
 ---
 
@@ -623,7 +635,7 @@ uv run pytest --collect-only
 ### M8.3 产物一致性检查
 
 - [ ] 检查 PPTX 完整性和页数。
-- [ ] 检查 PDF/PNG 页数与版本绑定。
+- [ ] 检查 PNG 页数与版本绑定。
 - [ ] 记录 PPTX 哈希到 QAReport。
 
 测试：过期预览、错误页数、损坏 PPTX 和正确产物。
@@ -672,7 +684,7 @@ uv run pytest --collect-only
 
 - [ ] 在没有既有虚拟环境的 Windows 环境执行 README 安装步骤。
 - [ ] 验证包含空格和中文的仓库路径。
-- [ ] 验证 LibreOffice 默认安装路径和自定义路径。
+- [ ] 验证 PowerPoint COM 可启动、超时可恢复且预览目录可写。
 
 测试：记录命令、耗时、发现的问题和修正。
 
@@ -684,7 +696,6 @@ uv run pytest --collect-only
 
 - [ ] 用 Microsoft PowerPoint 打开并编辑验收文件。
 - [ ] 用 WPS 打开并编辑验收文件。
-- [ ] 用 LibreOffice Impress 打开验收文件。
 
 测试：按 [TESTING.md](../../TESTING.md) 手工清单记录结果。
 
@@ -715,6 +726,7 @@ uv run pytest --collect-only
 | 2026-09-21 | M0.1 与第一阶段工具初始化 | 使用 uv 固定 Python 3.12，创建最小 src/test 骨架、环境测试和 `.env.example`；仅安装 Pydantic、pydantic-settings、python-pptx、pytest、Ruff，未开始业务实现 |
 | 2026-09-21 | DeckSpec 数据合同第一阶段 | 实现 SourceRef、AssetRef、ThemeSpec、SlideSpec、DeckSpec；仅开放 cover、bullets、closing，加入 JSON 往返、ID、布局、颜色、容量、引用和路径测试；未实现 PatchPlan 或渲染 |
 | 2026-09-21 | 确定性 PPTX 渲染第一阶段 | 使用原生可编辑文本框和形状实现 cover、bullets、closing；固定尺寸、主题与边距，保存后重新打开校验，并提供 sample_deck 生成脚本；未实现图片、图表或其他布局 |
+| 2026-09-22 | PowerPoint 真实预览链路 | 将未提交的旧预览方案替换为 PowerPoint COM 逐页 PNG；31 个普通测试、1 个真实集成测试及 Ruff 通过，三页 1920×1080 PNG 目视检查正常，完成后无残留 PowerPoint 进程 |
 
 ## 决策记录
 
@@ -724,13 +736,14 @@ uv run pytest --collect-only
 | 2026-09-21 | DeckSpec 为唯一事实源 | 支持确定性渲染、多轮局部修改、版本和回退 |
 | 2026-09-21 | 最终预览必须来自 PPTX | 避免网页预览与下载文件不一致 |
 | 2026-09-21 | 自动测试默认使用 FakeProvider | 消除网络、成本、随机性和密钥依赖 |
+| 2026-09-22 | 真实预览使用 PowerPoint COM 独立子进程 | 以目标 Office 渲染器保证预览一致性，并用进程隔离、超时和临时目录控制卡死与半成品风险 |
 
 ## 已知风险
 
 | 风险 | 当前应对 |
 |---|---|
 | python-pptx 对复杂 PowerPoint 特性覆盖有限 | MVP 限制布局和对象类型；后续可替换 PptxGenJS/Open XML SDK |
-| LibreOffice 与 PowerPoint 渲染可能存在差异 | 自动预览使用 LibreOffice，发布前增加 PowerPoint/WPS 手工矩阵 |
+| PowerPoint COM 依赖桌面 Office、用户会话与许可状态 | 启动时分类报告 COM 错误；用独立子进程隔离卡死，并保留上一成功预览 |
 | 中文字体在不同机器上不一致 | 启动检查字体，定义后备字体并在验收环境验证 |
 | 模型结构化输出能力因提供商而异 | 使用适配器、Pydantic 校验、FakeProvider 和提供商契约测试 |
 | Office/PDF 解析结果可能丢失布局语义 | MVP 以内容提取为主，保留来源定位；不承诺无损导入 |

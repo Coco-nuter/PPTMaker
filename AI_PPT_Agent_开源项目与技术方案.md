@@ -40,7 +40,7 @@ DeckSpec：PPT 的唯一事实源，页面具有稳定 ID
 模板布局器 + python-pptx → 原生可编辑 PPTX
         │
         ▼
-LibreOffice → PDF → PyMuPDF → 页面 PNG
+Microsoft PowerPoint COM → 逐页 PNG
         │
         ▼
 规则检查/视觉检查 → 预览、回退、下载
@@ -57,8 +57,7 @@ LibreOffice → PDF → PyMuPDF → 页面 PNG
 | [MarkItDown](https://github.com/microsoft/markitdown) | 可把 PDF、PPTX、DOCX、XLSX、图片等转换成适合 LLM 阅读的 Markdown |
 | [Pydantic](https://docs.pydantic.dev/) + 结构化输出 | 强制模型生成合法 DeckSpec/PatchPlan，避免解析一段不稳定的自然语言 |
 | [python-pptx](https://python-pptx.readthedocs.io/en/latest/) | 无需安装 PowerPoint即可生成原生 PPTX；文字、形状、表格、图片和常用图表可编辑 |
-| [LibreOffice](https://www.libreoffice.org/download/) | Windows 上可无界面地把 PPTX 转成 PDF，用于真实效果预览 |
-| [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/installation.html) | 不再额外安装 Poppler，直接把 PDF 页渲染成 PNG |
+| Microsoft PowerPoint + [pywin32](https://pypi.org/project/pywin32/) | 用 PowerPoint 自身渲染最终 PPTX，并逐页导出真实 PNG |
 | 显式工作流 | Demo 不需要 LangGraph；状态机更容易调试、测试和控制成本 |
 
 这吸收了以下开源项目的优点：
@@ -103,17 +102,11 @@ uv python install 3.12
 uv python list
 ```
 
-### 4.4 LibreOffice：PPTX 真实渲染
+### 4.4 Microsoft PowerPoint：PPTX 真实渲染
 
-功能：把生成的 PPTX 转成 PDF。预览必须来自最终 PPTX，而不是前端自己画一个近似页面。
+功能：通过 PowerPoint COM 将生成的 PPTX 逐页导出 PNG。预览必须来自最终 PPTX，而不是前端自己画一个近似页面。
 
-```powershell
-winget install --id TheDocumentFoundation.LibreOffice -e
-
-& "C:\Program Files\LibreOffice\program\soffice.exe" --version
-```
-
-若安装路径不同，后面在 `.env` 中修改 `SOFFICE_PATH`。
+本机需要 Windows 和已安装、已许可的桌面版 Microsoft PowerPoint。COM 渲染代码放入独立子进程，主进程负责超时和失败清理。
 
 ### 4.5 Python 包：Demo 的业务组件
 
@@ -124,7 +117,7 @@ winget install --id TheDocumentFoundation.LibreOffice -e
 | `pydantic` / `pydantic-settings` | DeckSpec、PatchPlan 校验和配置读取 |
 | `markitdown[all]` | PDF、DOCX、PPTX、XLSX、图片等素材解析 |
 | `python-pptx` | 生成原生可编辑 PPTX |
-| `pymupdf` | 将 LibreOffice 生成的 PDF 转为 PNG |
+| `pywin32`（仅 Windows） | 调用 PowerPoint COM 逐页导出 PNG |
 | `pillow` | 图片读取、缩放、裁剪和格式转换 |
 | `python-dotenv` | 从 `.env` 读取密钥与路径 |
 | `httpx` | 下载用户提供的远程素材；后续可接图库 API |
@@ -139,7 +132,8 @@ New-Item -ItemType Directory -Path ppt-agent-demo
 Set-Location ppt-agent-demo
 
 uv init --python 3.12
-uv add streamlit openai pydantic pydantic-settings python-pptx pymupdf pillow python-dotenv httpx
+uv add streamlit openai pydantic pydantic-settings python-pptx pillow python-dotenv httpx
+uv add "pywin32>=311; sys_platform == 'win32'"
 uv add "markitdown[all]"
 uv add --dev pytest ruff
 
@@ -169,7 +163,7 @@ ppt-agent-demo/
 │  ├─ patcher.py                # 应用多轮修改
 │  ├─ layouts.py                # 可测试的页面布局函数
 │  ├─ pptx_renderer.py          # DeckSpec → PPTX
-│  ├─ preview.py                # PPTX → PDF → PNG
+│  ├─ preview.py                # PPTX → PowerPoint COM → PNG
 │  ├─ qa.py                     # 溢出、密度、缺图等检查
 │  └─ storage.py                # 项目、版本、产物保存
 ├─ templates/
@@ -195,7 +189,7 @@ workspace/
 .streamlit/secrets.toml
 ```
 
-### 步骤 3：配置模型和 LibreOffice
+### 步骤 3：配置模型和 PowerPoint 预览
 
 `.env` 示例：
 
@@ -204,7 +198,10 @@ OPENAI_API_KEY=替换成你的密钥
 OPENAI_BASE_URL=https://api.openai.com/v1
 OPENAI_MODEL=gpt-5.6
 
-SOFFICE_PATH=C:\Program Files\LibreOffice\program\soffice.exe
+PREVIEW_BACKEND=powerpoint
+PREVIEW_TIMEOUT_SECONDS=120
+PREVIEW_WIDTH=1920
+PREVIEW_HEIGHT=1080
 WORKSPACE_DIR=workspace
 MAX_SOURCE_CHARS=60000
 ```
@@ -366,41 +363,29 @@ def generate_deck_spec(user_request: str, materials: str) -> DeckSpec:
 
 ### 步骤 8：生成真实预览
 
-先在 PowerShell 验证 LibreOffice：
-
-```powershell
-& "C:\Program Files\LibreOffice\program\soffice.exe" `
-  --headless --convert-to pdf --outdir . .\demo.pptx
-```
-
-`preview.py` 的流程：
+先确认本机已安装可用的 Microsoft PowerPoint。`preview.py` 在独立子进程中执行 COM 工作线程：
 
 ```python
-import subprocess
-import pymupdf
+import pythoncom
+import win32com.client
 
-def pptx_to_pngs(soffice: str, pptx_path, output_dir):
-    subprocess.run(
-        [soffice, "--headless", "--convert-to", "pdf",
-         "--outdir", str(output_dir), str(pptx_path)],
-        check=True,
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-
-    pdf_path = output_dir / f"{pptx_path.stem}.pdf"
-    doc = pymupdf.open(pdf_path)
-    png_paths = []
-    for index, page in enumerate(doc):
-        pixmap = page.get_pixmap(matrix=pymupdf.Matrix(1.5, 1.5), alpha=False)
-        png_path = output_dir / f"slide_{index + 1:03d}.png"
-        pixmap.save(png_path)
-        png_paths.append(png_path)
-    return png_paths
+pythoncom.CoInitialize()
+powerpoint = win32com.client.DispatchEx("PowerPoint.Application")
+presentation = powerpoint.Presentations.Open(
+    str(pptx_path), ReadOnly=True, Untitled=False, WithWindow=False
+)
+try:
+    for index in range(1, presentation.Slides.Count + 1):
+        presentation.Slides.Item(index).Export(
+            str(output_dir / f"slide_{index:03d}.png"), "PNG", 1920, 1080
+        )
+finally:
+    presentation.Close()
+    powerpoint.Quit()
+    pythoncom.CoUninitialize()
 ```
 
-Streamlit 展示这些 PNG。这样预览能发现字体替换、文本溢出和位置偏差。
+生产实现还需要由主进程设置超时，并先写临时目录、全部校验后再提交成功目录。Streamlit 展示这些 PNG，以发现字体替换、文本溢出和位置偏差。
 
 ### 步骤 9：实现多轮大白话修改
 
@@ -504,7 +489,7 @@ st.session_state.preview_paths
 - 空页面、重复标题、缺失素材、无效 `asset_id/source_id`。
 - 图表数据为空、指标卡数量超限、时间轴节点超限。
 - 中文字体是否存在；图片是否被拉伸。
-- LibreOffice 是否成功导出 PDF；PDF 页数是否等于 DeckSpec 页数。
+- PowerPoint 是否成功导出全部 PNG；PNG 页数和尺寸是否符合 DeckSpec 与配置。
 - PPTX ZIP 是否损坏，能否由 `python-pptx` 再次打开。
 
 第二阶段再把页面 PNG 发给视觉模型，检查遮挡、对比度、密度、对齐和跨页风格；模型只返回问题列表和修复建议，最终修改仍通过 PatchPlan 完成。
@@ -549,10 +534,10 @@ workspace/<project_id>/
 
 | 里程碑 | 实现内容 | 完成标志 |
 |---|---|---|
-| M0 环境 | uv、Python、LibreOffice、Streamlit | `streamlit hello` 和 `soffice --version` 成功 |
+| M0 环境 | uv、Python、Microsoft PowerPoint、Streamlit | `streamlit hello` 和 PowerPoint COM 集成测试成功 |
 | M1 单次生成 | 固定主题、9 种布局、DeckSpec、PPTX 导出 | 一句话生成 6～10 页可编辑 PPTX |
 | M2 素材输入 | MarkItDown、文件保存、来源 ID | PDF/DOCX/PPTX 上传后能生成基于素材的内容 |
-| M3 真实预览 | PPTX → PDF → PNG | 页面预览来自最终 PPTX，页数一致 |
+| M3 真实预览 | PPTX → PowerPoint COM → PNG | 页面预览来自最终 PPTX，页数和尺寸一致 |
 | M4 多轮修改 | PatchPlan、稳定页面 ID、版本保存与回退 | 能准确执行“改第3页/换主题/加一页” |
 | M5 质量检查 | 文本容量、资源、页数、文件完整性检查 | 不合格文件不允许直接下载 |
 | M6 视觉增强 | 图片检索/生图、VLM 复核、自动修复 | 视觉质量提升且失败时可降级 |
@@ -679,7 +664,7 @@ Demo 阶段直接使用 `workspace/` 文件夹即可，避免过早增加部署�
 
 第一版就使用：
 
-`Streamlit + OpenAI Python SDK/Pydantic + MarkItDown + python-pptx + LibreOffice + PyMuPDF + 本地版本目录`
+`Streamlit + OpenAI Python SDK/Pydantic + MarkItDown + python-pptx + PowerPoint COM/pywin32 + 本地版本目录`
 
 这条路线组件少、Windows 原生可运行，最适合快速做出真正能演示的产品闭环。Demo 稳定后，保持 DeckSpec/PatchPlan 协议不变，逐步替换为：
 
