@@ -1,0 +1,56 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+secrets/
+*密钥*.txt
+*secret*.txt
+*.pem
+*.key
+
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.hypothesis/
+
+# Build and packaging output
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Runtime projects and generated artifacts
+workspace/
+app_data/
+output/
+preview/
+tmp/
+temp/
+*.tmp
+*.log
+
+# Local IDE settings
+.vscode/
+.idea/
+*.code-workspace
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# LibreOffice lock and recovery files
+.~lock.*#
+*.bak
