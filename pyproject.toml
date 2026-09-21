@@ -23,6 +23,7 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-ra --strict-markers"
 testpaths = ["tests"]
+pythonpath = ["src"]
 markers = [
     "libreoffice: tests that require a local LibreOffice installation",
     "provider: tests that call a real model provider and require explicit opt-in",

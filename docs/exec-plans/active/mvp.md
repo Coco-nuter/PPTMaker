@@ -4,7 +4,7 @@
 
 - 状态：Active
 - 建立日期：2026-09-21
-- 当前阶段：M0.1 工程环境已完成，M0.2 仅完成第一阶段依赖子集；业务实现尚未开始
+- 当前阶段：M1 数据合同第一阶段完成，仅支持 cover、bullets、closing 三种布局
 - 产品范围：[../../PRODUCT.md](../../PRODUCT.md)
 - 架构约束：[../../ARCHITECTURE.md](../../ARCHITECTURE.md)
 - 测试策略：[../../TESTING.md](../../TESTING.md)
@@ -125,9 +125,9 @@ uv run pytest --collect-only
 
 ### M1.1 定义 ThemeSpec、SourceRef 和 AssetRef
 
-- [ ] 定义颜色、字体和主题字段约束。
-- [ ] 定义来源/资源 ID、显示名、类型和安全相对路径。
-- [ ] 禁止领域模型接受绝对本地路径。
+- [x] 定义颜色、字体和主题字段约束。
+- [x] 定义来源/资源 ID、显示名、类型和安全相对路径。
+- [x] 禁止领域模型接受绝对本地路径。
 
 测试：合法模型可序列化往返；非法颜色、重复 ID 和绝对路径被拒绝。
 
@@ -136,6 +136,12 @@ uv run pytest --collect-only
 依赖：M0.3、M0.4。
 
 ### M1.2 定义 SlideSpec 和九种布局合同
+
+第一阶段进展：
+
+- [x] 定义稳定 `slide_id`，并实现 `cover`、`bullets`、`closing` 三种布局。
+- [x] 为三种布局定义必需字段、字段长度和容量上限。
+- [ ] 实现其余六种布局后完成本任务。
 
 - [ ] 定义页面稳定 ID 和支持的布局枚举。
 - [ ] 为每种布局定义必需字段和容量上限。
@@ -148,6 +154,13 @@ uv run pytest --collect-only
 依赖：M1.1。
 
 ### M1.3 定义 DeckSpec
+
+第一阶段进展：
+
+- [x] 定义 schema version、文稿元数据、主题、来源、资源和有序页面。
+- [x] 校验全部 ID 唯一、页面引用存在、页面数量在 1～30 之间。
+- [x] 添加 JSON fixture、序列化往返和非法输入测试。
+- [ ] 九种布局全部完成后关闭本任务。
 
 - [ ] 定义 deck 元数据、schema version、主题、来源、资源和有序页面。
 - [ ] 校验所有 ID 唯一且引用存在。
@@ -693,6 +706,7 @@ uv run pytest --collect-only
 |---|---|---|
 | 2026-09-21 | 项目初始化规划 | 创建 AGENTS、README、产品/架构/测试文档和可独立测试的 MVP 任务；未创建业务代码 |
 | 2026-09-21 | M0.1 与第一阶段工具初始化 | 使用 uv 固定 Python 3.12，创建最小 src/test 骨架、环境测试和 `.env.example`；仅安装 Pydantic、pydantic-settings、python-pptx、pytest、Ruff，未开始业务实现 |
+| 2026-09-21 | DeckSpec 数据合同第一阶段 | 实现 SourceRef、AssetRef、ThemeSpec、SlideSpec、DeckSpec；仅开放 cover、bullets、closing，加入 JSON 往返、ID、布局、颜色、容量、引用和路径测试；未实现 PatchPlan 或渲染 |
 
 ## 决策记录
 
