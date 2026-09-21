@@ -4,7 +4,9 @@
 
 ## 当前状态
 
-项目处于初始化规划阶段。当前仓库只有调研与实施文档，尚未创建业务代码、Python 包或可运行 Demo。
+项目已完成 Python 3.12、uv、最小 `src` 包和测试环境初始化，尚未实现业务功能或可运行 Demo。
+
+当前只安装了第一阶段依赖：Pydantic、pydantic-settings、python-pptx、pytest 和 Ruff。Streamlit、模型 SDK、MarkItDown 和 PyMuPDF 将在对应阶段按计划引入。
 
 MVP 的目标闭环是：
 
@@ -56,20 +58,19 @@ uv python install 3.12
 & "C:\Program Files\LibreOffice\program\soffice.exe" --version
 ```
 
-## 计划中的运行命令
+## 当前可用的开发命令
 
-下面的命令会在对应 MVP 任务完成后生效；当前尚不可运行。
+在仓库根目录执行：
 
 ```powershell
 uv sync
-uv run pytest
+uv run pytest -q
 uv run ruff check .
-uv run streamlit run app.py
 ```
 
-默认开发地址计划为 `http://localhost:8501`。
+以上命令只验证工程环境。应用启动命令将在 Streamlit 阶段补充。
 
-## 计划中的仓库结构
+## 当前仓库结构
 
 ```text
 .
@@ -80,12 +81,11 @@ uv run streamlit run app.py
 │  ├─ ARCHITECTURE.md
 │  ├─ TESTING.md
 │  └─ exec-plans/active/mvp.md
-├─ prompts/                 # 后续创建：模型提示词
-├─ src/                     # 后续创建：领域与基础设施模块
-├─ templates/               # 后续创建：主题和布局资源
-├─ tests/                   # 后续创建：自动化测试与 fixtures
-├─ app.py                   # 后续创建：Streamlit 入口
-└─ workspace/               # 运行时创建且不提交
+├─ src/ppt_maker/           # 最小 Python 包，业务模块后续添加
+├─ tests/                   # 自动化测试与 fixtures
+├─ pyproject.toml           # 依赖、Ruff 和 pytest 配置
+├─ uv.lock                  # 可重复安装的依赖锁文件
+└─ .env.example             # 不含真实密钥的配置示例
 ```
 
 ## 安全
@@ -97,4 +97,3 @@ uv run streamlit run app.py
 ## 开始开发
 
 按 [MVP 执行计划](docs/exec-plans/active/mvp.md) 从 M0 开始。每个任务都列出了产物、独立测试和完成条件；不要跳过前置质量门禁。
-

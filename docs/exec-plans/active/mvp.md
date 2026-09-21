@@ -4,7 +4,7 @@
 
 - 状态：Active
 - 建立日期：2026-09-21
-- 当前阶段：项目初始化规划完成，业务实现尚未开始
+- 当前阶段：M0.1 工程环境已完成，M0.2 仅完成第一阶段依赖子集；业务实现尚未开始
 - 产品范围：[../../PRODUCT.md](../../PRODUCT.md)
 - 架构约束：[../../ARCHITECTURE.md](../../ARCHITECTURE.md)
 - 测试策略：[../../TESTING.md](../../TESTING.md)
@@ -39,9 +39,9 @@
 
 ### M0.1 初始化 Python 项目
 
-- [ ] 使用 `uv init --python 3.12` 创建项目元数据。
-- [ ] 设置应用包目录、测试目录和最小入口占位，不实现业务行为。
-- [ ] 将 `uv.lock` 纳入版本管理。
+- [x] 使用 `uv init --python 3.12` 创建项目元数据。
+- [x] 设置应用包目录、测试目录和最小入口占位，不实现业务行为。
+- [x] 将 `uv.lock` 纳入版本管理。
 
 产物：`pyproject.toml`、`uv.lock`、包/测试目录。
 
@@ -59,8 +59,8 @@ uv run python --version
 ### M0.2 固定基础依赖与工具配置
 
 - [ ] 添加运行依赖：Streamlit、OpenAI SDK、Pydantic、MarkItDown、python-pptx、PyMuPDF、Pillow、python-dotenv、httpx。
-- [ ] 添加开发依赖：pytest、Ruff。
-- [ ] 配置 Ruff 和 pytest markers（`libreoffice`、`provider`、`e2e`）。
+- [x] 添加开发依赖：pytest、Ruff。
+- [x] 配置 Ruff 和 pytest markers（`libreoffice`、`provider`、`e2e`）。
 
 产物：更新后的 `pyproject.toml` 和 `uv.lock`。
 
@@ -79,7 +79,7 @@ uv run pytest --collect-only
 ### M0.3 配置与启动前检查
 
 - [ ] 定义配置项及默认值，不包含真实密钥。
-- [ ] 添加 `.env.example`。
+- [x] 添加 `.env.example`。
 - [ ] 启动时检查 workspace 根目录和可选 `soffice.exe` 路径。
 - [ ] 错误信息包含明确的 Windows 修复方法。
 
@@ -692,6 +692,7 @@ uv run pytest --collect-only
 | 日期 | 任务 | 结果 |
 |---|---|---|
 | 2026-09-21 | 项目初始化规划 | 创建 AGENTS、README、产品/架构/测试文档和可独立测试的 MVP 任务；未创建业务代码 |
+| 2026-09-21 | M0.1 与第一阶段工具初始化 | 使用 uv 固定 Python 3.12，创建最小 src/test 骨架、环境测试和 `.env.example`；仅安装 Pydantic、pydantic-settings、python-pptx、pytest、Ruff，未开始业务实现 |
 
 ## 决策记录
 
@@ -719,4 +720,3 @@ uv run pytest --collect-only
 - warning 级 QA 是否允许下载？在 M8.3 开始前按具体 issue code 决定。
 - 首个受支持的真实模型及最小能力基线是什么？在 M5.2 开始前通过当前官方文档和账户能力确认。
 - PowerPoint 手工兼容测试采用哪些具体版本？在 M9.3 开始前记录环境。
-

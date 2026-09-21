@@ -1,0 +1,39 @@
+[project]
+name = "ppt-maker"
+version = "0.1.0"
+description = "Natural-language PowerPoint generation agent."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "python-pptx>=1.0.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.8",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+markers = [
+    "libreoffice: tests that require a local LibreOffice installation",
+    "provider: tests that call a real model provider and require explicit opt-in",
+    "e2e: end-to-end user journey tests",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = ["AI_PPT_Agent_开源项目与技术方案.md"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
