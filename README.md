@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成 Python 3.12、uv、最小 `src` 包和测试环境初始化，尚未实现业务功能或可运行 Demo。
+项目已完成 Python 3.12、uv、DeckSpec 数据合同，以及 `cover`、`bullets`、`closing` 三种布局的确定性 PPTX 渲染；尚未实现完整 Demo。
 
 当前只安装了第一阶段依赖：Pydantic、pydantic-settings、python-pptx、pytest 和 Ruff。Streamlit、模型 SDK、MarkItDown 和 PyMuPDF 将在对应阶段按计划引入。
 
@@ -66,9 +66,10 @@ uv python install 3.12
 uv sync
 uv run pytest -q
 uv run ruff check .
+uv run python src/generate_sample_pptx.py
 ```
 
-以上命令只验证工程环境。应用启动命令将在 Streamlit 阶段补充。
+最后一条命令读取 `tests/fixtures/sample_deck.json`，生成 `output/sample_deck.pptx`。应用启动命令将在 Streamlit 阶段补充。
 
 ## 当前仓库结构
 

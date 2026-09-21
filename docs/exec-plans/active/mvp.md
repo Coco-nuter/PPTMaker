@@ -4,7 +4,7 @@
 
 - 状态：Active
 - 建立日期：2026-09-21
-- 当前阶段：M1 数据合同第一阶段完成，仅支持 cover、bullets、closing 三种布局
+- 当前阶段：M2 确定性渲染第一阶段完成，仅支持 cover、bullets、closing 三种布局
 - 产品范围：[../../PRODUCT.md](../../PRODUCT.md)
 - 架构约束：[../../ARCHITECTURE.md](../../ARCHITECTURE.md)
 - 测试策略：[../../TESTING.md](../../TESTING.md)
@@ -208,6 +208,13 @@ uv run pytest --collect-only
 ## M2：确定性 PPTX 渲染
 
 ### M2.1 建立渲染器骨架
+
+第一阶段进展：
+
+- [x] 将当前三布局 DeckSpec 渲染为 16:9 Presentation。
+- [x] 统一主题颜色、字体、安全边距和页面尺寸。
+- [x] 保存后用 python-pptx 重新打开并核对页数。
+- [ ] 后续按完整 M2 合同补充结构化渲染结果和全部布局。
 
 - [ ] 将 DeckSpec 转成 16:9 Presentation。
 - [ ] 应用默认主题、母版级边距和字体规则。
@@ -707,6 +714,7 @@ uv run pytest --collect-only
 | 2026-09-21 | 项目初始化规划 | 创建 AGENTS、README、产品/架构/测试文档和可独立测试的 MVP 任务；未创建业务代码 |
 | 2026-09-21 | M0.1 与第一阶段工具初始化 | 使用 uv 固定 Python 3.12，创建最小 src/test 骨架、环境测试和 `.env.example`；仅安装 Pydantic、pydantic-settings、python-pptx、pytest、Ruff，未开始业务实现 |
 | 2026-09-21 | DeckSpec 数据合同第一阶段 | 实现 SourceRef、AssetRef、ThemeSpec、SlideSpec、DeckSpec；仅开放 cover、bullets、closing，加入 JSON 往返、ID、布局、颜色、容量、引用和路径测试；未实现 PatchPlan 或渲染 |
+| 2026-09-21 | 确定性 PPTX 渲染第一阶段 | 使用原生可编辑文本框和形状实现 cover、bullets、closing；固定尺寸、主题与边距，保存后重新打开校验，并提供 sample_deck 生成脚本；未实现图片、图表或其他布局 |
 
 ## 决策记录
 
