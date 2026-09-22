@@ -326,6 +326,23 @@ workspace/<project_id>/
 - 测试默认使用确定性 fake provider，不依赖网络和真实密钥。
 - 第三方 OpenAI-compatible 服务只有通过契约测试后才视为受支持。
 
+### 10.1 当前 DeckSpec 规划实现
+
+当前阶段只实现无素材的“自然语言要求 → DeckSpec”，不接入 Streamlit：
+
+```text
+用户要求 → planner 加载 prompts/plan_deck.md
+        → OpenAI Responses API structured output
+        → SDK 按 DeckSpec 解析
+        → 转回普通数据并再次执行 Pydantic 校验
+        → 合法 DeckSpec
+```
+
+- `src/config.py` 从环境读取 `OPENAI_API_KEY`、`OPENAI_BASE_URL`、`OPENAI_MODEL` 和 `LLM_TIMEOUT_SECONDS`；密钥使用 `SecretStr`，不得进入日志或异常正文。
+- `src/llm.py` 是 SDK 边界，使用 `responses.parse(..., text_format=DeckSpec)`，并把超时、连接失败、拒绝、空结果和非法结构转换为领域异常。
+- `src/planner.py` 负责提示词、输入长度、显式页数和最终二次校验；当前不读取素材、不写项目版本。
+- 模型名不硬编码，由部署环境选择支持 Responses API 结构化输出的模型；通过显式 smoke test 验证具体账户与模型组合。
+
 ## 11. 安全与隐私
 
 - API 密钥来自 `.env` 或进程环境，绝不进入 DeckSpec、日志或前端状态。

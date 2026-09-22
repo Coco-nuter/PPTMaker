@@ -145,6 +145,8 @@ Fixture 规则：
 - 可配置返回超时、拒绝、非法 JSON、非法字段和空结果；
 - 记录调用参数供断言，不发送网络请求。
 
+当前 DeckSpec 规划阶段直接 Mock OpenAI SDK 客户端，并用确定性 provider stub 测试 planner；两种方式都不访问网络。测试覆盖密钥缺失、超时、连接失败、拒绝、`output_parsed` 为空、非法 DeckSpec 和显式页数不一致。
+
 ### 4.2 提供商契约测试
 
 真实提供商测试单独标记，例如 `provider`，默认跳过。运行条件：
@@ -259,7 +261,7 @@ Windows 集成环境需要安装 Microsoft PowerPoint。测试内容：
 ```powershell
 uv run ruff check .
 uv run ruff format --check .
-uv run pytest -m "not provider"
+uv run pytest -q
 ```
 
 只运行 PowerPoint 真实集成：
@@ -279,12 +281,14 @@ uv run python src/generate_sample_preview.py
 
 每次预览写入新的 `output/preview/preview-*` 目录，不覆盖既有成功结果。
 
-显式运行真实提供商契约测试：
+显式运行真实 OpenAI smoke test：
 
 ```powershell
-$env:RUN_PROVIDER_TESTS = "1"
+$env:RUN_OPENAI_SMOKE_TESTS = "1"
 uv run pytest -m provider
 ```
+
+该测试还要求 `.env` 或进程环境中存在 `OPENAI_API_KEY` 和 `OPENAI_MODEL`。pytest 默认表达式排除 `provider`，因此普通测试不会产生网络请求或 API 费用。
 
 这些命令在 M0/M1 创建项目配置后生效；README 必须同步更新。
 

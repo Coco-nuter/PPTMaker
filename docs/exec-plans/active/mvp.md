@@ -442,10 +442,10 @@ uv run pytest --collect-only
 
 ### M5.2 实现首个真实提供商适配器
 
-- [ ] 从配置创建客户端。
-- [ ] 使用结构化输出生成 Pydantic 模型。
-- [ ] 设置超时和有限重试。
-- [ ] 不记录密钥或完整敏感材料。
+- [x] 从配置创建客户端。
+- [x] 使用结构化输出生成 Pydantic 模型。
+- [x] 设置超时和有限重试。
+- [x] 不记录密钥或完整敏感材料。
 
 测试：mock SDK 响应；可选真实 provider 契约测试。
 
@@ -456,7 +456,7 @@ uv run pytest --collect-only
 ### M5.3 实现 DeckSpec 规划器
 
 - [ ] 组合用户要求、材料块、布局目录和产品约束。
-- [ ] 对模型结果执行完整 DeckSpec 校验。
+- [x] 对模型结果执行完整 DeckSpec 校验。
 - [ ] 在 UI 使用前返回大纲视图模型。
 
 测试：无材料、单材料、多材料、超长材料和非法模型输出。
@@ -468,8 +468,8 @@ uv run pytest --collect-only
 ### M5.4 实现规划失败与降级
 
 - [ ] 区分可重试与不可重试错误。
-- [ ] 模型输出无效时最多执行有限修复请求或直接失败。
-- [ ] 不保存无效候选版本。
+- [x] 模型输出无效时最多执行有限修复请求或直接失败。
+- [x] 不保存无效候选版本。
 
 测试：超时、拒绝、非法 JSON、非法布局、悬空来源和重试耗尽。
 
@@ -741,6 +741,7 @@ uv run pytest --collect-only
 | 2026-09-21 | 确定性 PPTX 渲染第一阶段 | 使用原生可编辑文本框和形状实现 cover、bullets、closing；固定尺寸、主题与边距，保存后重新打开校验，并提供 sample_deck 生成脚本；未实现图片、图表或其他布局 |
 | 2026-09-22 | PowerPoint 真实预览链路 | 将未提交的旧预览方案替换为 PowerPoint COM 逐页 PNG；31 个普通测试、1 个真实集成测试及 Ruff 通过，三页 1920×1080 PNG 目视检查正常，完成后无残留 PowerPoint 进程 |
 | 2026-09-22 | 无 LLM Streamlit 最小闭环 | 使用固定 sample DeckSpec 展示大纲；每次生成独立项目，串联可编辑 PPTX、PowerPoint PNG 预览与下载；37 个普通测试、2 个真实集成测试和 Ruff 通过，运行前后无 PowerPoint 残留进程 |
+| 2026-09-22 | OpenAI DeckSpec 结构化规划 | 使用 Responses API 与 `text_format=DeckSpec` 生成结构化结果，执行 Pydantic 二次校验并分类处理配置、超时、网络、拒绝、空输出和非法结果；提供独立 CLI 与默认禁用的真实 smoke test，尚未接入 Streamlit 或素材 |
 
 ## 决策记录
 
@@ -751,6 +752,7 @@ uv run pytest --collect-only
 | 2026-09-21 | 最终预览必须来自 PPTX | 避免网页预览与下载文件不一致 |
 | 2026-09-21 | 自动测试默认使用 FakeProvider | 消除网络、成本、随机性和密钥依赖 |
 | 2026-09-22 | 真实预览使用 PowerPoint COM 独立子进程 | 以目标 Office 渲染器保证预览一致性，并用进程隔离、超时和临时目录控制卡死与半成品风险 |
+| 2026-09-22 | OpenAI 模型名由环境配置 | 不把账户可能不可用的模型写死在代码中；部署者选择支持 Responses API 结构化输出的模型，并用显式 smoke test 验证 |
 
 ## 已知风险
 

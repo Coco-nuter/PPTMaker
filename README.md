@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染、`PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路，以及基于固定 `sample_deck.json` 的无 LLM Streamlit 最小闭环。
+项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染、`PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路，以及基于固定 `sample_deck.json` 的无 LLM Streamlit 最小闭环。当前也可通过独立命令行调用 OpenAI Responses API，把自然语言要求规划成经过 Pydantic 二次校验的 `DeckSpec`；该能力尚未接入 Streamlit。
 
-当前运行依赖为 Streamlit、Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。模型 SDK 与 MarkItDown 尚未引入。
+当前运行依赖为 Streamlit、OpenAI Python SDK、Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。MarkItDown 尚未引入。
 
 MVP 的目标闭环是：
 
@@ -60,6 +60,8 @@ uv python install 3.12
 Copy-Item .env.example .env
 ```
 
+人工测试自然语言规划前，在未提交的 `.env` 中填写 `OPENAI_API_KEY` 和支持结构化输出的 `OPENAI_MODEL`；官方端点可保留示例中的 `OPENAI_BASE_URL`。不要把真实密钥写入 `.env.example`。
+
 ## 当前可用的开发命令
 
 在仓库根目录执行：
@@ -74,6 +76,14 @@ uv run streamlit run app.py
 ```
 
 Streamlit 页面读取并校验 `tests/fixtures/sample_deck.json`，展示三页大纲。每次点击“生成 PPT”都会创建新的 `workspace/<project_id>/`，生成可编辑 PPTX、展示 PowerPoint 导出的全部 PNG，并提供 PPTX 下载。
+
+独立执行自然语言规划（只生成 DeckSpec JSON，不启动 Streamlit、不生成 PPTX）：
+
+```powershell
+uv run python src/plan_deck.py "生成一份6页的研究生开题汇报，简洁蓝白风" --output output/planned_deck.json
+```
+
+真实调用需要有效密钥，结果写入 `output/planned_deck.json`。普通 `pytest` 全部使用 Mock，不会访问网络。
 
 只运行 PowerPoint 真实集成测试：
 
@@ -95,9 +105,13 @@ uv run pytest -m "integration and powerpoint" -q
 │  └─ exec-plans/active/mvp.md
 ├─ src/config.py            # 环境配置
 ├─ src/demo_workflow.py     # 独立项目创建与生成编排
+├─ src/llm.py               # OpenAI 结构化输出适配器
 ├─ src/models.py            # DeckSpec 数据合同
+├─ src/planner.py           # 自然语言到 DeckSpec 规划
+├─ src/plan_deck.py         # 规划命令行入口
 ├─ src/pptx_renderer.py     # 三布局 PPTX 渲染
 ├─ src/preview.py           # PowerPoint COM 真实预览
+├─ prompts/plan_deck.md     # DeckSpec 规划提示词
 ├─ tests/                   # 自动化测试与 fixtures
 ├─ pyproject.toml           # 依赖、Ruff 和 pytest 配置
 ├─ uv.lock                  # 可重复安装的依赖锁文件
