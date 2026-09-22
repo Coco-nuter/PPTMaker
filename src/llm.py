@@ -5,10 +5,54 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from openai import APIConnectionError, APITimeoutError, OpenAI, OpenAIError
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from config import Settings
-from models import DeckSpec
+from models import (
+    ComparisonRowSpec,
+    ContractModel,
+    DeckSpec,
+    LabelText,
+    LayoutName,
+    MetricSpec,
+    NotesText,
+    ProcessStepSpec,
+    ShortText,
+    SlideTitle,
+    StableId,
+    TimelineItemSpec,
+)
+
+
+class _StructuredSlideResponse(ContractModel):
+    """不在领域层使用的兼容传输模型；空字段会在二次校验前剔除。"""
+
+    slide_id: StableId
+    layout: LayoutName
+    title: SlideTitle
+    notes: NotesText | None = None
+    subtitle: ShortText | None = None
+    section_number: str | None = None
+    bullets: list[ShortText] | None = Field(default=None, min_length=1, max_length=6)
+    left_title: LabelText | None = None
+    left_items: list[ShortText] | None = Field(default=None, min_length=1, max_length=6)
+    right_title: LabelText | None = None
+    right_items: list[ShortText] | None = Field(default=None, min_length=1, max_length=6)
+    metrics: list[MetricSpec] | None = Field(default=None, min_length=2, max_length=4)
+    items: list[TimelineItemSpec] | None = Field(default=None, min_length=2, max_length=6)
+    steps: list[ProcessStepSpec] | None = Field(default=None, min_length=2, max_length=6)
+    rows: list[ComparisonRowSpec] | None = Field(default=None, min_length=1, max_length=6)
+
+
+class _StructuredDeckResponse(DeckSpec):
+    """兼容不支持数组元素联合类型的 OpenAI 兼容端点。"""
+
+    slides: list[_StructuredSlideResponse] = Field(min_length=1, max_length=30)
+
+    @model_validator(mode="after")
+    def slide_ids_must_be_unique(self) -> _StructuredDeckResponse:
+        """传输层暂缓唯一性检查，交由 Provider 规范化后再执行领域校验。"""
+        return self
 
 
 class LLMError(RuntimeError):
@@ -113,7 +157,7 @@ def validate_deck_output(parsed: object) -> DeckSpec:
     """把 SDK 解析结果转换成普通数据后再次执行完整领域校验。"""
     raw_output: object
     if isinstance(parsed, BaseModel):
-        raw_output = parsed.model_dump(mode="json")
+        raw_output = parsed.model_dump(mode="json", exclude_none=True)
     else:
         raw_output = parsed
 
@@ -121,6 +165,39 @@ def validate_deck_output(parsed: object) -> DeckSpec:
         return DeckSpec.model_validate(raw_output)
     except (TypeError, ValidationError) as exc:
         raise LLMInvalidOutputError(f"模型返回的 DeckSpec 不合法：{exc}") from exc
+
+
+def _deduplicate_slide_ids(raw_output: dict[str, object]) -> dict[str, object]:
+    """按页面顺序为重复 ID 添加稳定后缀，不修改模型解析对象。"""
+    normalized = dict(raw_output)
+    slides = raw_output.get("slides")
+    if not isinstance(slides, list):
+        return normalized
+
+    deck_id = raw_output.get("deck_id")
+    used_ids = {deck_id} if isinstance(deck_id, str) else set()
+    normalized_slides: list[object] = []
+    for slide in slides:
+        if not isinstance(slide, dict):
+            normalized_slides.append(slide)
+            continue
+
+        normalized_slide = dict(slide)
+        slide_id = slide.get("slide_id")
+        if isinstance(slide_id, str):
+            candidate = slide_id
+            suffix_number = 2
+            while candidate in used_ids:
+                suffix = f"_{suffix_number}"
+                stem = slide_id[: 64 - len(suffix)].rstrip("_")
+                candidate = f"{stem}{suffix}"
+                suffix_number += 1
+            normalized_slide["slide_id"] = candidate
+            used_ids.add(candidate)
+        normalized_slides.append(normalized_slide)
+
+    normalized["slides"] = normalized_slides
+    return normalized
 
 
 class OpenAIModelProvider:
@@ -166,7 +243,7 @@ class OpenAIModelProvider:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_request},
                 ],
-                text_format=DeckSpec,
+                text_format=_StructuredDeckResponse,
                 store=False,
                 timeout=float(self._settings.llm_timeout_seconds),
             )
@@ -188,4 +265,7 @@ class OpenAIModelProvider:
                 raise LLMRefusalError(f"模型拒绝生成演示文稿：{refusal}")
             raise LLMEmptyOutputError("OpenAI 未返回 output_parsed，无法生成 DeckSpec。")
 
+        if isinstance(parsed, _StructuredDeckResponse):
+            raw_output = parsed.model_dump(mode="json", exclude_none=True)
+            return validate_deck_output(_deduplicate_slide_ids(raw_output))
         return validate_deck_output(parsed)

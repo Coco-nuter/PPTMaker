@@ -17,6 +17,8 @@ from llm import (
     LLMTimeoutError,
     MissingAPIKeyError,
     OpenAIModelProvider,
+    _StructuredDeckResponse,
+    validate_deck_output,
 )
 from models import DeckSpec
 
@@ -96,16 +98,71 @@ def test_valid_structured_output_is_revalidated_as_deck_spec() -> None:
 
     assert result == parsed
     assert result is not parsed
-    client.responses.parse.assert_called_once_with(
-        model="test-structured-model",
-        input=[
-            {"role": "system", "content": "system rules"},
-            {"role": "user", "content": "生成三页项目介绍"},
-        ],
-        text_format=DeckSpec,
-        store=False,
-        timeout=12.0,
-    )
+    client.responses.parse.assert_called_once()
+    call = client.responses.parse.call_args
+    assert call.kwargs["model"] == "test-structured-model"
+    assert call.kwargs["input"] == [
+        {"role": "system", "content": "system rules"},
+        {"role": "user", "content": "生成三页项目介绍"},
+    ]
+    assert call.kwargs["store"] is False
+    assert call.kwargs["timeout"] == 12.0
+
+    response_model = call.kwargs["text_format"]
+    slide_schema = response_model.model_json_schema()["properties"]["slides"]["items"]
+    assert slide_schema == {"$ref": "#/$defs/_StructuredSlideResponse"}
+    assert "oneOf" not in slide_schema
+    assert "discriminator" not in slide_schema
+
+
+def test_provider_transport_removes_unused_null_layout_fields() -> None:
+    raw = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    parsed = _StructuredDeckResponse.model_validate(raw)
+    assert parsed.slides[0].bullets is None
+
+    client = MagicMock()
+    client.responses.parse.return_value = make_client_response(parsed)
+    provider = OpenAIModelProvider(make_settings(), client=client)
+
+    result = provider.generate_deck("生成三页项目介绍", "system rules")
+
+    assert result == load_sample_deck()
+    assert isinstance(result, DeckSpec)
+
+
+def test_provider_transport_cannot_add_fields_to_selected_layout() -> None:
+    raw = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    raw["slides"][0]["bullets"] = ["封面不允许包含要点字段"]
+    parsed = _StructuredDeckResponse.model_validate(raw)
+
+    with pytest.raises(LLMInvalidOutputError, match="DeckSpec 不合法"):
+        validate_deck_output(parsed)
+
+
+def test_provider_assigns_stable_suffixes_to_duplicate_slide_ids() -> None:
+    raw = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    raw["slides"][1]["slide_id"] = "slide_cover"
+    raw["slides"][2]["slide_id"] = "slide_cover"
+    parsed = _StructuredDeckResponse.model_validate(raw)
+    client = MagicMock()
+    client.responses.parse.return_value = make_client_response(parsed)
+    provider = OpenAIModelProvider(make_settings(), client=client)
+
+    result = provider.generate_deck("生成三页项目介绍", "system rules")
+
+    assert [slide.slide_id for slide in result.slides] == [
+        "slide_cover",
+        "slide_cover_2",
+        "slide_cover_3",
+    ]
+
+
+def test_direct_deck_validation_still_rejects_duplicate_slide_ids() -> None:
+    raw = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    raw["slides"][1]["slide_id"] = "slide_cover"
+
+    with pytest.raises(LLMInvalidOutputError, match="slide_id values must be unique"):
+        validate_deck_output(raw)
 
 
 def test_invalid_structured_output_is_rejected() -> None:

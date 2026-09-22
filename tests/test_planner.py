@@ -39,9 +39,26 @@ def test_planner_returns_valid_deck_and_passes_prompt() -> None:
     assert provider.calls[0][0] == "生成一份3页的项目介绍"
     assert "每页只表达一个主要结论" in provider.calls[0][1]
     assert "不得编造" in provider.calls[0][1]
-    assert "cover" in provider.calls[0][1]
+    for layout in (
+        "cover",
+        "section",
+        "bullets",
+        "two_column",
+        "metrics",
+        "timeline",
+        "process",
+        "comparison",
+        "closing",
+    ):
+        assert f"`{layout}`" in provider.calls[0][1]
     assert "slide_id" in provider.calls[0][1]
+    assert "返回前逐一检查所有 `slide_id`" in provider.calls[0][1]
     assert "最多 6 个要点" in provider.calls[0][1]
+    assert "明确数字时使用" in provider.calls[0][1]
+    assert "不得推测或虚构数字" in provider.calls[0][1]
+    assert "不要连续大量使用相同布局" in provider.calls[0][1]
+    assert "不得输出文本框或形状坐标" in provider.calls[0][1]
+    assert "不得生成 `source`" in provider.calls[0][1]
 
 
 @pytest.mark.parametrize("user_request", ["", "   ", "x" * 8_001])

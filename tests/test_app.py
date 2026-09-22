@@ -133,8 +133,20 @@ def test_all_nine_layouts_can_be_displayed_as_outline_without_rendering() -> Non
         "closing",
     ):
         assert f"布局：{layout}" in visible_captions
-    assert "9 种 · 页面布局" in visible_markdown
-    assert "整页图片 / 原生对象" in visible_markdown
+    assert "**9 种** · 页面布局" in visible_markdown
+    assert "整页图片 vs 原生对象" in visible_markdown
+    assert "章节编号" in visible_markdown
+    assert "主要要点" in visible_markdown
+    assert "左栏 · DeepSeek" in visible_markdown
+    assert "右栏 · 本地程序" in visible_markdown
+    assert "指标" in visible_markdown
+    assert "1920×1080" in visible_markdown
+    assert "时间节点" in visible_markdown
+    assert "阶段一 · 定义合同" in visible_markdown
+    assert "流程步骤" in visible_markdown
+    assert "输入需求" in visible_markdown
+    assert "对比对象" in visible_markdown
+    assert "整页图片「难以编辑」" in visible_markdown
     generate.assert_not_called()
 
 

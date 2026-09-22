@@ -15,7 +15,9 @@ import demo_workflow  # noqa: E402
 from llm import LLMError, ModelProvider  # noqa: E402
 from models import (  # noqa: E402
     BulletsSlideSpec,
+    ClosingSlideSpec,
     ComparisonSlideSpec,
+    CoverSlideSpec,
     DeckSpec,
     MetricsSlideSpec,
     ProcessSlideSpec,
@@ -52,35 +54,52 @@ def _initialize_session() -> None:
 
 
 def _slide_content(slide: SlideSpec) -> str:
-    if isinstance(slide, BulletsSlideSpec):
-        return "\n".join(f"- {bullet}" for bullet in slide.bullets)
+    """把不同视觉布局转换成适合确认的大纲摘要。"""
+    if isinstance(slide, CoverSlideSpec):
+        return f"**副标题**：{slide.subtitle}" if slide.subtitle else "（无副标题）"
     if isinstance(slide, SectionSlideSpec):
-        prefix = f"{slide.section_number} · " if slide.section_number else ""
-        return f"{prefix}{slide.subtitle}"
+        parts = []
+        if slide.section_number:
+            parts.append(f"**章节编号**：{slide.section_number}")
+        parts.append(f"**章节说明**：{slide.subtitle}")
+        return "\n\n".join(parts)
+    if isinstance(slide, BulletsSlideSpec):
+        subtitle = f"**页面说明**：{slide.subtitle}\n\n" if slide.subtitle else ""
+        items = "\n".join(f"- {bullet}" for bullet in slide.bullets)
+        return f"{subtitle}**主要要点**\n\n{items}"
     if isinstance(slide, TwoColumnSlideSpec):
         left = "\n".join(f"- {item}" for item in slide.left_items)
         right = "\n".join(f"- {item}" for item in slide.right_items)
-        return f"**{slide.left_title}**\n{left}\n\n**{slide.right_title}**\n{right}"
+        return (
+            f"**左栏 · {slide.left_title}**\n\n{left}\n\n**右栏 · {slide.right_title}**\n\n{right}"
+        )
     if isinstance(slide, MetricsSlideSpec):
-        return "\n".join(
-            f"- **{metric.value} · {metric.label}**：{metric.description}"
+        metrics = "\n".join(
+            f"- **{metric.value}** · {metric.label}：{metric.description}"
             for metric in slide.metrics
         )
+        return f"**指标**\n\n{metrics}"
     if isinstance(slide, TimelineSlideSpec):
-        return "\n".join(
+        items = "\n".join(
             f"- **{item.label} · {item.title}**：{item.description}" for item in slide.items
         )
+        return f"**时间节点**\n\n{items}"
     if isinstance(slide, ProcessSlideSpec):
-        return "\n".join(
+        steps = "\n".join(
             f"{index}. **{step.title}**：{step.description}"
             for index, step in enumerate(slide.steps, start=1)
         )
+        return f"**流程步骤**\n\n{steps}"
     if isinstance(slide, ComparisonSlideSpec):
         rows = "\n".join(
-            f"- **{row.label}**：{row.left_value} / {row.right_value}" for row in slide.rows
+            f"- **{row.label}**：{slide.left_title}「{row.left_value}」；"
+            f"{slide.right_title}「{row.right_value}」"
+            for row in slide.rows
         )
-        return f"**{slide.left_title} / {slide.right_title}**\n{rows}"
-    return slide.subtitle or "（无补充内容）"
+        return f"**对比对象**：{slide.left_title} vs {slide.right_title}\n\n{rows}"
+    if isinstance(slide, ClosingSlideSpec):
+        return f"**结束语**：{slide.subtitle}" if slide.subtitle else "（无结束语）"
+    raise TypeError(f"不支持的大纲布局：{slide.layout}")
 
 
 def _show_outline(deck: DeckSpec) -> None:
