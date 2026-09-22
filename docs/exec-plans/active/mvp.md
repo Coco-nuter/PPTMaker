@@ -4,7 +4,7 @@
 
 - 状态：Active
 - 建立日期：2026-09-21
-- 当前阶段：M3 PowerPoint COM 真实预览链路已通过三页示例验收；九布局与版本绑定留待后续任务
+- 当前阶段：M7 无 LLM Streamlit 最小闭环；固定 sample DeckSpec 可生成、预览并下载
 - 产品范围：[../../PRODUCT.md](../../PRODUCT.md)
 - 架构约束：[../../ARCHITECTURE.md](../../ARCHITECTURE.md)
 - 测试策略：[../../TESTING.md](../../TESTING.md)
@@ -57,6 +57,11 @@ uv run python --version
 依赖：无。
 
 ### M0.2 固定基础依赖与工具配置
+
+当前阶段进展：
+
+- [x] 已添加 Streamlit；模型 SDK、MarkItDown、Pillow 等留在对应后续阶段。
+- [x] pywin32 仅作为 Windows 平台依赖安装。
 
 - [ ] 添加运行依赖：Streamlit、OpenAI SDK、Pydantic、MarkItDown、python-pptx、Pillow、python-dotenv、httpx，以及 Windows 限定的 pywin32。
 - [x] 添加开发依赖：pytest、Ruff。
@@ -540,6 +545,14 @@ uv run pytest --collect-only
 
 ## M7：Streamlit 用户闭环
 
+当前阶段进展：
+
+- [x] 固定 `sample_deck.json` 经 DeckSpec 校验后展示标题、受众、用途和逐页大纲。
+- [x] `session_state` 保存项目 ID、DeckSpec、阶段、PPTX/预览路径和错误信息。
+- [x] 每次点击创建隔离项目，完成 PPTX → PowerPoint PNG → 页面预览 → 下载闭环。
+- [x] 普通 AppTest Mock 业务边界；真实 PowerPoint 闭环使用独立 integration marker。
+- [ ] 聊天、上传、大纲编辑、多轮修改和版本回退仍按原计划后续实现。
+
 ### M7.1 项目和会话 UI
 
 - [ ] 新建/选择项目。
@@ -727,6 +740,7 @@ uv run pytest --collect-only
 | 2026-09-21 | DeckSpec 数据合同第一阶段 | 实现 SourceRef、AssetRef、ThemeSpec、SlideSpec、DeckSpec；仅开放 cover、bullets、closing，加入 JSON 往返、ID、布局、颜色、容量、引用和路径测试；未实现 PatchPlan 或渲染 |
 | 2026-09-21 | 确定性 PPTX 渲染第一阶段 | 使用原生可编辑文本框和形状实现 cover、bullets、closing；固定尺寸、主题与边距，保存后重新打开校验，并提供 sample_deck 生成脚本；未实现图片、图表或其他布局 |
 | 2026-09-22 | PowerPoint 真实预览链路 | 将未提交的旧预览方案替换为 PowerPoint COM 逐页 PNG；31 个普通测试、1 个真实集成测试及 Ruff 通过，三页 1920×1080 PNG 目视检查正常，完成后无残留 PowerPoint 进程 |
+| 2026-09-22 | 无 LLM Streamlit 最小闭环 | 使用固定 sample DeckSpec 展示大纲；每次生成独立项目，串联可编辑 PPTX、PowerPoint PNG 预览与下载；37 个普通测试、2 个真实集成测试和 Ruff 通过，运行前后无 PowerPoint 残留进程 |
 
 ## 决策记录
 
@@ -744,6 +758,7 @@ uv run pytest --collect-only
 |---|---|
 | python-pptx 对复杂 PowerPoint 特性覆盖有限 | MVP 限制布局和对象类型；后续可替换 PptxGenJS/Open XML SDK |
 | PowerPoint COM 依赖桌面 Office、用户会话与许可状态 | 启动时分类报告 COM 错误；用独立子进程隔离卡死，并保留上一成功预览 |
+| Streamlit session state 不等同于持久化项目索引 | 当前每次生成保存在独立 workspace；正式项目恢复与版本索引留到 storage 阶段 |
 | 中文字体在不同机器上不一致 | 启动检查字体，定义后备字体并在验收环境验证 |
 | 模型结构化输出能力因提供商而异 | 使用适配器、Pydantic 校验、FakeProvider 和提供商契约测试 |
 | Office/PDF 解析结果可能丢失布局语义 | MVP 以内容提取为主，保留来源定位；不承诺无损导入 |

@@ -89,6 +89,8 @@ uv run ruff format --check .
 
 端到端测试仍使用 fake provider，保证稳定和低成本。
 
+当前无 LLM Demo 额外使用 Streamlit `AppTest` 覆盖固定 fixture 的大纲展示、生成按钮、成功预览/下载和失败状态。普通测试 Mock 工作流，不启动 PowerPoint；真实闭环同时标记 `integration` 与 `powerpoint`。
+
 ### 2.6 手工兼容性测试
 
 发布前在真实应用中检查：
@@ -265,6 +267,8 @@ uv run pytest -m "not provider"
 ```powershell
 uv run pytest -m "integration and powerpoint" -q
 ```
+
+该命令同时验证预览后端和 Streamlit 按钮闭环。本机未安装 PowerPoint 时，预览后端测试会明确 skip；普通 `uv run pytest -q` 始终排除这些测试。
 
 本机必须安装 Microsoft PowerPoint；未安装时集成测试会显示原因并明确跳过。用当前示例文稿执行完整真实预览：
 

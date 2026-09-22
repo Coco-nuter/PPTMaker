@@ -4,9 +4,9 @@
 
 ## 当前状态
 
-项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染，以及 `PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路；尚未实现完整 Demo。
+项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染、`PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路，以及基于固定 `sample_deck.json` 的无 LLM Streamlit 最小闭环。
 
-当前运行依赖为 Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。Streamlit、模型 SDK 与 MarkItDown 尚未引入。
+当前运行依赖为 Streamlit、Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。模型 SDK 与 MarkItDown 尚未引入。
 
 MVP 的目标闭环是：
 
@@ -70,9 +70,10 @@ uv run pytest -q
 uv run ruff check .
 uv run python src/generate_sample_pptx.py
 uv run python src/generate_sample_preview.py
+uv run streamlit run app.py
 ```
 
-预览命令读取 `tests/fixtures/sample_deck.json`，先生成 `output/sample_deck.pptx`，再由 PowerPoint 把三页分别导出到独立的 `output/preview/preview-*/png/` 目录。应用启动命令将在 Streamlit 阶段补充。
+Streamlit 页面读取并校验 `tests/fixtures/sample_deck.json`，展示三页大纲。每次点击“生成 PPT”都会创建新的 `workspace/<project_id>/`，生成可编辑 PPTX、展示 PowerPoint 导出的全部 PNG，并提供 PPTX 下载。
 
 只运行 PowerPoint 真实集成测试：
 
@@ -85,6 +86,7 @@ uv run pytest -m "integration and powerpoint" -q
 ```text
 .
 ├─ AGENTS.md
+├─ app.py                   # 无 LLM Streamlit 最小闭环
 ├─ README.md
 ├─ docs/
 │  ├─ PRODUCT.md
@@ -92,6 +94,7 @@ uv run pytest -m "integration and powerpoint" -q
 │  ├─ TESTING.md
 │  └─ exec-plans/active/mvp.md
 ├─ src/config.py            # 环境配置
+├─ src/demo_workflow.py     # 独立项目创建与生成编排
 ├─ src/models.py            # DeckSpec 数据合同
 ├─ src/pptx_renderer.py     # 三布局 PPTX 渲染
 ├─ src/preview.py           # PowerPoint COM 真实预览

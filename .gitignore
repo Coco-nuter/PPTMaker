@@ -51,6 +51,5 @@ temp/
 Thumbs.db
 Desktop.ini
 
-# LibreOffice lock and recovery files
-.~lock.*#
+# Office recovery files
 *.bak

@@ -67,6 +67,9 @@ Streamlit 应用
 app.py
 └─ 仅处理 Streamlit 组件、用户事件和视图状态
 
+src/demo_workflow.py
+└─ 固定 DeckSpec Demo 的项目隔离、快照、PPTX 渲染和预览编排
+
 src/config.py
 └─ 读取并校验环境变量、路径、模型和限制
 
@@ -259,6 +262,22 @@ QA 结果应结构化，至少包含：
 - 每次转换先写独立临时目录；全部验证通过后再原子移动到新的成功目录。
 - 输出文件必须位于当前项目工作区。
 - 文件名固定为 `slide_NNN.png`，PNG 数量必须等于 PPTX 页数，尺寸必须符合配置。
+
+### 8.1 无 LLM Streamlit 最小闭环
+
+当前阶段使用固定 `sample_deck.json` 验证 UI 到真实产物的链路：
+
+```text
+fixture → DeckSpec 校验 → 大纲展示 → 新 project_id
+→ workspace/<project_id>/deck.json + PPTX + PNG
+→ Streamlit 预览与 PPTX 下载
+```
+
+- `app.py` 只保存 `project_id`、`deck_spec`、`stage` 和产物路径等视图状态。
+- `demo_workflow.py` 负责创建隔离项目并调用渲染器与预览后端。
+- 每次点击都创建新项目；开始新任务前清空旧下载路径。
+- 只有 PPTX 与全部真实 PNG 成功后才能进入 `ready`。
+- PowerPoint 不可用或任一阶段失败时进入 `error`，不展示伪造预览或下载入口。
 
 ## 9. 本地存储
 
