@@ -89,7 +89,7 @@ uv run ruff format --check .
 
 端到端测试仍使用 fake provider，保证稳定和低成本。
 
-当前无 LLM Demo 额外使用 Streamlit `AppTest` 覆盖固定 fixture 的大纲展示、生成按钮、成功预览/下载和失败状态。普通测试 Mock 工作流，不启动 PowerPoint；真实闭环同时标记 `integration` 与 `powerpoint`。
+当前 Streamlit 闭环使用 `AppTest` + `FakeModelProvider` 覆盖需求输入、大纲展示、确认门禁、重新规划、放弃、成功预览/下载和失败保留上次成功产物。普通测试 Mock 生成工作流，不访问模型网络、不启动 PowerPoint；真实 PowerPoint 闭环同时标记 `integration` 与 `powerpoint`。
 
 ### 2.6 手工兼容性测试
 
@@ -145,7 +145,7 @@ Fixture 规则：
 - 可配置返回超时、拒绝、非法 JSON、非法字段和空结果；
 - 记录调用参数供断言，不发送网络请求。
 
-当前 DeckSpec 规划阶段直接 Mock OpenAI SDK 客户端，并用确定性 provider stub 测试 planner；两种方式都不访问网络。测试覆盖密钥缺失、超时、连接失败、拒绝、`output_parsed` 为空、非法 DeckSpec 和显式页数不一致。
+当前 DeckSpec 规划阶段直接 Mock OpenAI SDK 客户端，并使用 `FakeModelProvider` 测试 planner、业务编排和 Streamlit；这些测试都不访问网络。测试覆盖密钥缺失、超时、连接失败、拒绝、`output_parsed` 为空、非法 DeckSpec、显式页数不一致以及 UI 状态转换。
 
 ### 4.2 提供商契约测试
 

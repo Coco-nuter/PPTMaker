@@ -1,4 +1,4 @@
-"""不依赖 LLM 的 Streamlit Demo 业务编排。"""
+"""已确认 DeckSpec 的隔离项目生成与预览编排。"""
 
 from __future__ import annotations
 

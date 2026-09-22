@@ -55,6 +55,33 @@ class ModelProvider(Protocol):
         ...
 
 
+class FakeModelProvider:
+    """供自动测试使用的确定性 DeckSpec provider。"""
+
+    def __init__(
+        self,
+        decks: DeckSpec | list[DeckSpec],
+        *,
+        error: Exception | None = None,
+    ) -> None:
+        self._decks = list(decks) if isinstance(decks, list) else [decks]
+        if not self._decks:
+            raise ValueError("FakeModelProvider requires at least one DeckSpec")
+        self.error = error
+        self.calls: list[tuple[str, str]] = []
+        self._next_index = 0
+
+    def generate_deck(self, user_request: str, system_prompt: str) -> DeckSpec:
+        """记录调用，按顺序返回合法副本，耗尽后重复最后一个结果。"""
+        self.calls.append((user_request, system_prompt))
+        if self.error is not None:
+            raise self.error
+
+        index = min(self._next_index, len(self._decks) - 1)
+        self._next_index += 1
+        return validate_deck_output(self._decks[index])
+
+
 def _read_value(value: object, name: str) -> object | None:
     """同时读取 SDK 对象或测试字典中的字段。"""
     if isinstance(value, dict):

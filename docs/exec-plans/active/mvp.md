@@ -4,7 +4,7 @@
 
 - 状态：Active
 - 建立日期：2026-09-21
-- 当前阶段：M7 无 LLM Streamlit 最小闭环；固定 sample DeckSpec 可生成、预览并下载
+- 当前阶段：M7 Streamlit 规划与大纲确认闭环；自然语言可生成候选 DeckSpec，确认后生成、预览并下载
 - 产品范围：[../../PRODUCT.md](../../PRODUCT.md)
 - 架构约束：[../../ARCHITECTURE.md](../../ARCHITECTURE.md)
 - 测试策略：[../../TESTING.md](../../TESTING.md)
@@ -431,8 +431,8 @@ uv run pytest --collect-only
 ### M5.1 定义 ModelProvider 接口和 FakeProvider
 
 - [ ] 定义生成 DeckSpec/PatchPlan 的领域接口。
-- [ ] 实现确定性 FakeProvider。
-- [ ] 定义超时、拒绝、无效结构和提供商错误类型。
+- [x] 实现确定性 FakeProvider。
+- [x] 定义超时、拒绝、无效结构和提供商错误类型。
 
 测试：fake 成功和所有错误分支；断言领域层没有 SDK 类型。
 
@@ -551,7 +551,10 @@ uv run pytest --collect-only
 - [x] `session_state` 保存项目 ID、DeckSpec、阶段、PPTX/预览路径和错误信息。
 - [x] 每次点击创建隔离项目，完成 PPTX → PowerPoint PNG → 页面预览 → 下载闭环。
 - [x] 普通 AppTest Mock 业务边界；真实 PowerPoint 闭环使用独立 integration marker。
-- [ ] 聊天、上传、大纲编辑、多轮修改和版本回退仍按原计划后续实现。
+- [x] 自然语言需求、主题、受众、用途和页数进入 planner，生成候选 DeckSpec。
+- [x] 大纲确认前不生成 PPTX，支持重新规划和放弃候选大纲。
+- [x] 规划或渲染失败不覆盖上一次成功产物。
+- [ ] 上传、大纲编辑、多轮修改和版本回退仍按原计划后续实现。
 
 ### M7.1 项目和会话 UI
 
@@ -579,9 +582,9 @@ uv run pytest --collect-only
 
 ### M7.3 大纲确认 UI
 
-- [ ] 显示页面顺序、标题、布局和一句话摘要。
-- [ ] 支持确认和重新规划。
-- [ ] 确认前不生成最终 PPTX。
+- [x] 显示页面顺序、标题、布局和一句话摘要。
+- [x] 支持确认和重新规划。
+- [x] 确认前不生成最终 PPTX。
 
 测试：首次大纲、重新规划、确认和模型失败。
 
@@ -591,8 +594,8 @@ uv run pytest --collect-only
 
 ### M7.4 生成、预览和下载 UI
 
-- [ ] 显示生成进度和结构化错误。
-- [ ] 展示当前版本 PNG 网格。
+- [x] 显示生成进度和结构化错误。
+- [x] 展示当前版本 PNG 网格。
 - [ ] 仅在 QA 通过时提供 PPTX 下载。
 
 测试：成功生成、渲染失败、预览失败、QA fail 和下载文件名。
@@ -742,6 +745,7 @@ uv run pytest --collect-only
 | 2026-09-22 | PowerPoint 真实预览链路 | 将未提交的旧预览方案替换为 PowerPoint COM 逐页 PNG；31 个普通测试、1 个真实集成测试及 Ruff 通过，三页 1920×1080 PNG 目视检查正常，完成后无残留 PowerPoint 进程 |
 | 2026-09-22 | 无 LLM Streamlit 最小闭环 | 使用固定 sample DeckSpec 展示大纲；每次生成独立项目，串联可编辑 PPTX、PowerPoint PNG 预览与下载；37 个普通测试、2 个真实集成测试和 Ruff 通过，运行前后无 PowerPoint 残留进程 |
 | 2026-09-22 | OpenAI DeckSpec 结构化规划 | 使用 Responses API 与 `text_format=DeckSpec` 生成结构化结果，执行 Pydantic 二次校验并分类处理配置、超时、网络、拒绝、空输出和非法结果；提供独立 CLI 与默认禁用的真实 smoke test，尚未接入 Streamlit 或素材 |
+| 2026-09-22 | Streamlit 自然语言规划与大纲确认 | 接入主题、受众、用途、页数和补充要求；使用六状态工作流展示逐页大纲，支持确认、重新规划和放弃；仅确认后生成 PPTX/PowerPoint PNG，失败保留上一次成功结果；普通 AppTest 使用 FakeProvider |
 
 ## 决策记录
 

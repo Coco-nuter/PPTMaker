@@ -263,21 +263,22 @@ QA 结果应结构化，至少包含：
 - 输出文件必须位于当前项目工作区。
 - 文件名固定为 `slide_NNN.png`，PNG 数量必须等于 PPTX 页数，尺寸必须符合配置。
 
-### 8.1 无 LLM Streamlit 最小闭环
+### 8.1 Streamlit 规划与确认闭环
 
-当前阶段使用固定 `sample_deck.json` 验证 UI 到真实产物的链路：
+当前无素材流程为：
 
 ```text
-fixture → DeckSpec 校验 → 大纲展示 → 新 project_id
-→ workspace/<project_id>/deck.json + PPTX + PNG
-→ Streamlit 预览与 PPTX 下载
+自然语言需求 + 主题/受众/用途/页数
+→ planner → 候选 DeckSpec → 大纲展示
+→ 用户确认 → 新 project_id → PPTX → PowerPoint PNG → 下载
 ```
 
-- `app.py` 只保存 `project_id`、`deck_spec`、`stage` 和产物路径等视图状态。
-- `demo_workflow.py` 负责创建隔离项目并调用渲染器与预览后端。
-- 每次点击都创建新项目；开始新任务前清空旧下载路径。
+- `src/app_workflow.py` 校验结构化需求输入并组合 planner 请求；`app.py` 只处理组件、事件和视图状态。
+- 状态为 `intake`、`planning`、`outline`、`rendering`、`ready`、`error`；只有 `outline` 能进入渲染。
+- 候选 `deck_spec` 与上一次成功的 DeckSpec/产物分开保存。重新规划先清空旧候选，不复用旧大纲。
+- `demo_workflow.py` 只接收已确认且再次校验的 DeckSpec，创建隔离项目并调用渲染器与预览后端。
+- 规划或生成失败不替换上一次成功的 `project_id`、PPTX 和 PNG；失败项目不提供下载。
 - 只有 PPTX 与全部真实 PNG 成功后才能进入 `ready`。
-- PowerPoint 不可用或任一阶段失败时进入 `error`，不展示伪造预览或下载入口。
 
 ## 9. 本地存储
 
@@ -328,7 +329,7 @@ workspace/<project_id>/
 
 ### 10.1 当前 DeckSpec 规划实现
 
-当前阶段只实现无素材的“自然语言要求 → DeckSpec”，不接入 Streamlit：
+当前阶段实现无素材的“自然语言要求 → DeckSpec”，并由 Streamlit 在生成前展示和确认：
 
 ```text
 用户要求 → planner 加载 prompts/plan_deck.md

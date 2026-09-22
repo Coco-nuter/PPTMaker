@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染、`PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路，以及基于固定 `sample_deck.json` 的无 LLM Streamlit 最小闭环。当前也可通过独立命令行调用 OpenAI Responses API，把自然语言要求规划成经过 Pydantic 二次校验的 `DeckSpec`；该能力尚未接入 Streamlit。
+项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染、`PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路，以及自然语言规划、大纲确认、生成和下载的 Streamlit 最小闭环。用户确认大纲前不会生成 PPTX。
 
 当前运行依赖为 Streamlit、OpenAI Python SDK、Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。MarkItDown 尚未引入。
 
@@ -75,7 +75,7 @@ uv run python src/generate_sample_preview.py
 uv run streamlit run app.py
 ```
 
-Streamlit 页面读取并校验 `tests/fixtures/sample_deck.json`，展示三页大纲。每次点击“生成 PPT”都会创建新的 `workspace/<project_id>/`，生成可编辑 PPTX、展示 PowerPoint 导出的全部 PNG，并提供 PPTX 下载。
+Streamlit 页面收集自然语言需求、主题、受众、用途和页数，调用模型生成并校验 `DeckSpec`，先展示包含 `slide_id` 的逐页大纲。用户可确认、重新规划或放弃；只有确认后才创建新的 `workspace/<project_id>/`，生成可编辑 PPTX、展示 PowerPoint 导出的全部 PNG 并提供下载。
 
 独立执行自然语言规划（只生成 DeckSpec JSON，不启动 Streamlit、不生成 PPTX）：
 
@@ -96,7 +96,7 @@ uv run pytest -m "integration and powerpoint" -q
 ```text
 .
 ├─ AGENTS.md
-├─ app.py                   # 无 LLM Streamlit 最小闭环
+├─ app.py                   # 自然语言规划、大纲确认与生成 UI
 ├─ README.md
 ├─ docs/
 │  ├─ PRODUCT.md
@@ -104,6 +104,7 @@ uv run pytest -m "integration and powerpoint" -q
 │  ├─ TESTING.md
 │  └─ exec-plans/active/mvp.md
 ├─ src/config.py            # 环境配置
+├─ src/app_workflow.py      # UI 需求输入与规划业务边界
 ├─ src/demo_workflow.py     # 独立项目创建与生成编排
 ├─ src/llm.py               # OpenAI 结构化输出适配器
 ├─ src/models.py            # DeckSpec 数据合同
