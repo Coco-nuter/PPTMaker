@@ -12,7 +12,8 @@ from llm import FakeModelProvider, LLMInvalidOutputError, LLMTimeoutError
 from models import DeckSpec
 
 APP_PATH = Path(__file__).parents[1] / "app.py"
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "basic_deck.json"
+VISUAL_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
 ONE_PIXEL_PNG = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
 )
@@ -20,6 +21,10 @@ ONE_PIXEL_PNG = base64.b64decode(
 
 def load_sample_deck() -> DeckSpec:
     return DeckSpec.model_validate_json(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+
+def load_visual_sample_deck() -> DeckSpec:
+    return DeckSpec.model_validate_json(VISUAL_FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
 def create_artifacts(directory: Path) -> DemoArtifacts:
@@ -56,9 +61,14 @@ def fill_intake(app: AppTest, *, slide_count: int = 3) -> None:
     app.number_input[0].set_value(slide_count)
 
 
-def plan_with_fake(app: AppTest, provider: FakeModelProvider) -> AppTest:
+def plan_with_fake(
+    app: AppTest,
+    provider: FakeModelProvider,
+    *,
+    slide_count: int = 3,
+) -> AppTest:
     app.session_state["_model_provider"] = provider
-    fill_intake(app)
+    fill_intake(app, slide_count=slide_count)
     return button(app, "生成大纲").click().run(timeout=10)
 
 
@@ -97,6 +107,35 @@ def test_fake_provider_plans_and_displays_outline_without_rendering() -> None:
     assert button(app, "确认大纲")
     assert button(app, "重新规划")
     assert button(app, "放弃当前大纲")
+
+
+def test_all_nine_layouts_can_be_displayed_as_outline_without_rendering() -> None:
+    deck = load_visual_sample_deck()
+    app = AppTest.from_file(str(APP_PATH)).run(timeout=10)
+
+    with patch("demo_workflow.generate_demo_project") as generate:
+        app = plan_with_fake(app, FakeModelProvider(deck), slide_count=9)
+
+    assert not app.exception
+    assert app.session_state.stage == "outline"
+    assert len(app.caption) >= 9
+    visible_captions = "\n".join(element.value for element in app.caption)
+    visible_markdown = "\n".join(element.value for element in app.markdown)
+    for layout in (
+        "cover",
+        "section",
+        "bullets",
+        "two_column",
+        "metrics",
+        "timeline",
+        "process",
+        "comparison",
+        "closing",
+    ):
+        assert f"布局：{layout}" in visible_captions
+    assert "9 种 · 页面布局" in visible_markdown
+    assert "整页图片 / 原生对象" in visible_markdown
+    generate.assert_not_called()
 
 
 def test_confirmed_outline_generates_previews_and_download(tmp_path: Path) -> None:

@@ -1,130 +1,131 @@
 # AI PPT Agent
 
-通过大白话和用户素材生成可编辑 PPTX，并支持大纲确认、多轮局部修改、版本回退和最终文件真实预览。
+一个 Windows 本地运行的 AI PPT Demo：用户用大白话描述需求，DeepSeek 返回结构化 `DeckSpec`，程序使用 `python-pptx` 绘制可编辑 PowerPoint 原生对象，再由 Microsoft PowerPoint 导出真实 PNG 预览。
 
-## 当前状态
-
-项目已完成 Python 3.12、uv、DeckSpec 数据合同、三种布局的确定性 PPTX 渲染、`PPTX → Microsoft PowerPoint COM → PNG` 真实预览链路，以及自然语言规划、大纲确认、生成和下载的 Streamlit 最小闭环。用户确认大纲前不会生成 PPTX。
-
-当前运行依赖为 Streamlit、OpenAI Python SDK、Pydantic、pydantic-settings、python-pptx，以及仅在 Windows 安装的 pywin32；开发依赖为 pytest 和 Ruff。MarkItDown 尚未引入。
-
-MVP 的目标闭环是：
+## MVP 流程
 
 ```text
-自然语言/素材 → 可确认大纲 → DeckSpec → 可编辑 PPTX
-              → PPTX 实际渲染预览 → 大白话局部修改 → 新版本/回退
+用户文字要求
+→ DeepSeek/OpenAI 兼容接口生成 DeckSpec
+→ Pydantic 校验
+→ 用户确认大纲
+→ python-pptx 绘制文字、卡片、色块、节点和连接线
+→ 可编辑 PPTX
+→ PowerPoint COM 导出 PNG
+→ 页面预览与 PPTX 下载
 ```
 
-## 文档导航
+当前已经可以完成自然语言规划、大纲确认、三种基础布局 PPTX 生成、PowerPoint 真实预览和下载。`DeckSpec` 2.0 已用独立模型支持九种布局；当前渲染器仍只绘制 `cover`、`bullets`、`closing`，下一阶段实现其余纯原生形状版式。
 
-- [产品定义](docs/PRODUCT.md)：用户、范围、用户流程、功能和验收标准。
-- [架构设计](docs/ARCHITECTURE.md)：组件、数据合同、存储、依赖和技术边界。
-- [测试策略](docs/TESTING.md)：测试分层、测试矩阵、质量门禁和完成定义。
-- [MVP 执行计划](docs/exec-plans/active/mvp.md)：按依赖排序、可独立测试的开发任务。
-- [原始调研方案](AI_PPT_Agent_开源项目与技术方案.md)：开源项目调研、工具安装和方案推导。
-- [仓库规则](AGENTS.md)：对开发者和自动化 Agent 长期有效的约束。
+## MVP 边界
 
-## 计划采用的 MVP 技术栈
+MVP 只接受文字输入，不上传或解析文件，不使用用户图片，也不生成、搜索图片。MVP 不包含 `PatchPlan`、多轮局部修改、版本管理、版本回退、自动 QA 系统、预览哈希绑定或图表布局。
+
+[历史调研方案](AI_PPT_Agent_开源项目与技术方案.md)仅作为背景参考，其中的素材解析、图片和多轮修改方案不属于当前开发范围。
+
+## 技术栈
 
 | 工具 | 用途 |
 |---|---|
 | Python 3.12 + [uv](https://docs.astral.sh/uv/) | 运行时、虚拟环境和依赖锁定 |
-| [Streamlit](https://docs.streamlit.io/) | 聊天、上传、大纲、预览和下载界面 |
-| OpenAI Python SDK + Pydantic | 结构化生成 `DeckSpec` 和 `PatchPlan` |
-| [MarkItDown](https://github.com/microsoft/markitdown) | PDF、DOCX、PPTX、XLSX 等素材解析 |
-| [python-pptx](https://python-pptx.readthedocs.io/) | 生成原生可编辑 PPTX |
+| [Streamlit](https://docs.streamlit.io/) | 文字输入、大纲确认、预览和下载 |
+| OpenAI Python SDK + Pydantic | 调用 DeepSeek/OpenAI 兼容接口并校验 `DeckSpec` |
+| [python-pptx](https://python-pptx.readthedocs.io/) | 绘制原生可编辑 PPTX 对象 |
 | Microsoft PowerPoint + [pywin32](https://pypi.org/project/pywin32/) | 通过 COM 将最终 PPTX 逐页导出为 PNG |
 | pytest + Ruff | 自动化测试和静态检查 |
 
-## Windows 开发环境准备
+项目不使用 MarkItDown，也不需要 LibreOffice。
 
-以下命令可在 PowerShell 中执行；它们只准备工具，不会生成业务代码。
+## Windows 快速开始
+
+安装 Git、uv 和 Python 3.12：
 
 ```powershell
 winget install --id Git.Git -e
-winget install --id Microsoft.VisualStudioCode -e
 powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-重新打开 PowerShell 后验证：
-
-```powershell
-git --version
-uv --version
 uv python install 3.12
+uv sync
 ```
 
-本机还需要安装带有效许可的 Microsoft PowerPoint。复制预览配置；默认导出尺寸为 1920×1080：
+本机需要安装带有效许可的 Microsoft PowerPoint。复制环境配置：
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-人工测试自然语言规划前，在未提交的 `.env` 中填写 `OPENAI_API_KEY` 和支持结构化输出的 `OPENAI_MODEL`；官方端点可保留示例中的 `OPENAI_BASE_URL`。不要把真实密钥写入 `.env.example`。
+在未提交的 `.env` 中配置：
 
-## 当前可用的开发命令
+```dotenv
+OPENAI_API_KEY=your-api-key
+OPENAI_BASE_URL=your-openai-compatible-endpoint
+OPENAI_MODEL=your-deepseek-model
+LLM_TIMEOUT_SECONDS=120
+PREVIEW_BACKEND=powerpoint
+PREVIEW_TIMEOUT_SECONDS=120
+PREVIEW_WIDTH=1920
+PREVIEW_HEIGHT=1080
+```
 
-在仓库根目录执行：
+不要把真实密钥写入 `.env.example` 或提交到 Git。
+
+启动应用：
 
 ```powershell
-uv sync
-uv run pytest -q
-uv run ruff check .
-uv run python src/generate_sample_pptx.py
-uv run python src/generate_sample_preview.py
 uv run streamlit run app.py
 ```
 
-Streamlit 页面收集自然语言需求、主题、受众、用途和页数，调用模型生成并校验 `DeckSpec`，先展示包含 `slide_id` 的逐页大纲。用户可确认、重新规划或放弃；只有确认后才创建新的 `workspace/<project_id>/`，生成可编辑 PPTX、展示 PowerPoint 导出的全部 PNG 并提供下载。
+页面会收集主题、受众、用途、页数和补充要求。模型生成大纲后，用户可以确认、重新规划或放弃；只有确认后才会生成 PPTX 和 PowerPoint PNG 预览。
 
-独立执行自然语言规划（只生成 DeckSpec JSON，不启动 Streamlit、不生成 PPTX）：
+## 开发与测试
+
+```powershell
+uv run pytest -q
+uv run ruff check .
+```
+
+独立生成 `DeckSpec`：
 
 ```powershell
 uv run python src/plan_deck.py "生成一份6页的研究生开题汇报，简洁蓝白风" --output output/planned_deck.json
 ```
 
-真实调用需要有效密钥，结果写入 `output/planned_deck.json`。普通 `pytest` 全部使用 Mock，不会访问网络。
-
-只运行 PowerPoint 真实集成测试：
+生成现有示例 PPTX 和预览：
 
 ```powershell
-uv run pytest -m "integration and powerpoint" -q
+uv run python src/generate_sample_pptx.py
+uv run python src/generate_sample_preview.py
 ```
 
-## 当前仓库结构
+真实 Provider 和 PowerPoint 测试默认跳过，显式测试命令见 [docs/TESTING.md](docs/TESTING.md)。普通测试不访问网络，也不会自动启动 PowerPoint。
+
+## 项目结构
 
 ```text
 .
-├─ AGENTS.md
-├─ app.py                   # 自然语言规划、大纲确认与生成 UI
-├─ README.md
+├─ app.py                   # Streamlit 文字输入、大纲确认与生成 UI
+├─ src/
+│  ├─ app_workflow.py      # UI 输入与规划边界
+│  ├─ config.py            # 环境配置
+│  ├─ llm.py               # DeepSeek/OpenAI 兼容接口适配器
+│  ├─ models.py            # DeckSpec 数据合同
+│  ├─ planner.py           # 文字要求到 DeckSpec
+│  ├─ pptx_renderer.py     # 原生 PPTX 渲染
+│  └─ preview.py           # PowerPoint COM 真实预览
+├─ prompts/plan_deck.md
+├─ tests/
 ├─ docs/
-│  ├─ PRODUCT.md
-│  ├─ ARCHITECTURE.md
-│  ├─ TESTING.md
-│  └─ exec-plans/active/mvp.md
-├─ src/config.py            # 环境配置
-├─ src/app_workflow.py      # UI 需求输入与规划业务边界
-├─ src/demo_workflow.py     # 独立项目创建与生成编排
-├─ src/llm.py               # OpenAI 结构化输出适配器
-├─ src/models.py            # DeckSpec 数据合同
-├─ src/planner.py           # 自然语言到 DeckSpec 规划
-├─ src/plan_deck.py         # 规划命令行入口
-├─ src/pptx_renderer.py     # 三布局 PPTX 渲染
-├─ src/preview.py           # PowerPoint COM 真实预览
-├─ prompts/plan_deck.md     # DeckSpec 规划提示词
-├─ tests/                   # 自动化测试与 fixtures
-├─ pyproject.toml           # 依赖、Ruff 和 pytest 配置
-├─ uv.lock                  # 可重复安装的依赖锁文件
-└─ .env.example             # 不含真实密钥的配置示例
+├─ pyproject.toml
+├─ uv.lock
+└─ .env.example
 ```
 
-## 安全
+## 文档
 
-- 不要提交 `.env`、API 密钥、用户上传材料、生成的 PPTX/PNG 或运行时工作区。
-- 当前目录中的任何包含“密钥”或“secret”字样的本地文件均应保持未跟踪状态。
-- 用户文件只能在对应项目工作区内读写，不能用未经校验的文件名拼接任意路径。
+- [产品定义](docs/PRODUCT.md)
+- [架构设计](docs/ARCHITECTURE.md)
+- [测试策略](docs/TESTING.md)
+- [当前 MVP 计划](docs/exec-plans/active/mvp.md)
+- [仓库长期规则](AGENTS.md)
+- [历史调研参考](AI_PPT_Agent_开源项目与技术方案.md)：不是当前 MVP 范围。
 
-## 开始开发
-
-按 [MVP 执行计划](docs/exec-plans/active/mvp.md) 继续当前阶段。每个任务都列出了产物、独立测试和完成条件；不要跳过前置质量门禁。
+生成的 `workspace/`、`output/`、`.env` 和本地密钥文件不得提交。

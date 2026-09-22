@@ -6,7 +6,7 @@ from models import DeckSpec
 from pptx_renderer import render_deck
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "basic_deck.json"
 OUTPUT_PATH = PROJECT_ROOT / "output" / "sample_deck.pptx"
 
 

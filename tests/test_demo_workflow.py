@@ -10,7 +10,7 @@ from demo_workflow import DemoGenerationError, generate_demo_project, load_deck_
 from models import DeckSpec
 from preview import PreviewError, PreviewResult
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "basic_deck.json"
 
 
 def fake_preview(pptx_path: str | Path, output_root: str | Path) -> PreviewResult:

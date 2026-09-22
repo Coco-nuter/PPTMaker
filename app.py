@@ -13,7 +13,17 @@ if str(SRC_ROOT) not in sys.path:
 import app_workflow  # noqa: E402
 import demo_workflow  # noqa: E402
 from llm import LLMError, ModelProvider  # noqa: E402
-from models import DeckSpec, SlideSpec  # noqa: E402
+from models import (  # noqa: E402
+    BulletsSlideSpec,
+    ComparisonSlideSpec,
+    DeckSpec,
+    MetricsSlideSpec,
+    ProcessSlideSpec,
+    SectionSlideSpec,
+    SlideSpec,
+    TimelineSlideSpec,
+    TwoColumnSlideSpec,
+)
 from planner import PlanningRequestError, PromptLoadError  # noqa: E402
 
 WORKSPACE_ROOT = PROJECT_ROOT / "workspace"
@@ -42,8 +52,34 @@ def _initialize_session() -> None:
 
 
 def _slide_content(slide: SlideSpec) -> str:
-    if slide.bullets:
+    if isinstance(slide, BulletsSlideSpec):
         return "\n".join(f"- {bullet}" for bullet in slide.bullets)
+    if isinstance(slide, SectionSlideSpec):
+        prefix = f"{slide.section_number} · " if slide.section_number else ""
+        return f"{prefix}{slide.subtitle}"
+    if isinstance(slide, TwoColumnSlideSpec):
+        left = "\n".join(f"- {item}" for item in slide.left_items)
+        right = "\n".join(f"- {item}" for item in slide.right_items)
+        return f"**{slide.left_title}**\n{left}\n\n**{slide.right_title}**\n{right}"
+    if isinstance(slide, MetricsSlideSpec):
+        return "\n".join(
+            f"- **{metric.value} · {metric.label}**：{metric.description}"
+            for metric in slide.metrics
+        )
+    if isinstance(slide, TimelineSlideSpec):
+        return "\n".join(
+            f"- **{item.label} · {item.title}**：{item.description}" for item in slide.items
+        )
+    if isinstance(slide, ProcessSlideSpec):
+        return "\n".join(
+            f"{index}. **{step.title}**：{step.description}"
+            for index, step in enumerate(slide.steps, start=1)
+        )
+    if isinstance(slide, ComparisonSlideSpec):
+        rows = "\n".join(
+            f"- **{row.label}**：{row.left_value} / {row.right_value}" for row in slide.rows
+        )
+        return f"**{slide.left_title} / {slide.right_title}**\n{rows}"
     return slide.subtitle or "（无补充内容）"
 
 

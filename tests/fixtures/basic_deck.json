@@ -1,0 +1,45 @@
+{
+  "schema_version": "2.0",
+  "deck_id": "deck_basic",
+  "title": "AI PPT Agent 项目介绍",
+  "audience": "项目评审人员",
+  "purpose": "说明产品目标、核心能力和下一步安排",
+  "language": "zh-CN",
+  "aspect_ratio": "16:9",
+  "theme": {
+    "name": "蓝白商务",
+    "primary_color": "#1F4E79",
+    "secondary_color": "#5B9BD5",
+    "background_color": "#FFFFFF",
+    "text_color": "#1F2937",
+    "heading_font": "Microsoft YaHei",
+    "body_font": "Microsoft YaHei"
+  },
+  "slides": [
+    {
+      "slide_id": "slide_cover",
+      "layout": "cover",
+      "title": "AI PPT Agent",
+      "subtitle": "用自然语言创建可编辑演示文稿",
+      "notes": "介绍项目愿景。"
+    },
+    {
+      "slide_id": "slide_capabilities",
+      "layout": "bullets",
+      "title": "核心能力",
+      "bullets": [
+        "通过自然语言描述演示目标",
+        "使用结构化数据保证内容可验证",
+        "使用 PowerPoint 原生对象保持可编辑"
+      ],
+      "notes": "说明当前已经实现的能力。"
+    },
+    {
+      "slide_id": "slide_closing",
+      "layout": "closing",
+      "title": "谢谢",
+      "subtitle": "欢迎提出问题",
+      "notes": "结束并进入问答。"
+    }
+  ]
+}

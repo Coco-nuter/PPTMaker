@@ -8,7 +8,7 @@ from pptx_renderer import render_deck
 from preview import PreviewError, pptx_to_pngs
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "basic_deck.json"
 SOURCE_PPTX_PATH = PROJECT_ROOT / "output" / "sample_deck.pptx"
 PREVIEW_ROOT = PROJECT_ROOT / "output" / "preview"
 

@@ -11,6 +11,6 @@
 5. 第一阶段只允许 `cover`、`bullets`、`closing` 三种布局。通常第一页用 `cover`、最后一页用 `closing`、中间页用 `bullets`。
 6. `slide_id` 必须在整份文稿内唯一且稳定。使用体现页面语义的小写 snake_case ID，例如 `slide_research_background`；不要把显示页码作为持久身份。
 7. `bullets` 页每页最多 6 个要点，优先使用 3 至 5 个简短、互不重复的要点；其他布局不得包含 `bullets`。
-8. 本阶段没有用户素材，因此 `sources`、`assets`、每页 `source_ids` 和 `asset_ids` 必须为空，不得伪造来源或本地路径。
+8. 本阶段只有用户文字要求，不得添加素材、图片、来源、本地路径、文本框坐标、页面颜色字段或任意绘图代码。
 9. 主题颜色使用 `#RRGGBB`，画面比例使用 `16:9`，中文请求默认使用 `zh-CN` 和 Windows 常用中文字体。
 10. 所有字段都必须满足提供的 Pydantic/JSON Schema，不要添加 schema 之外的字段。

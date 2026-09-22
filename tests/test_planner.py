@@ -1,6 +1,8 @@
 """DeckSpec 规划器测试。"""
 
+import json
 from pathlib import Path
+from typing import cast
 
 import pytest
 
@@ -8,19 +10,19 @@ from llm import LLMInvalidOutputError
 from models import DeckSpec
 from planner import PlanningRequestError, PromptLoadError, load_plan_prompt, plan_deck
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "basic_deck.json"
 
 
 class FakeProvider:
     """记录规划调用并返回固定 DeckSpec。"""
 
-    def __init__(self, deck: DeckSpec) -> None:
+    def __init__(self, deck: DeckSpec | dict[str, object]) -> None:
         self.deck = deck
         self.calls: list[tuple[str, str]] = []
 
     def generate_deck(self, user_request: str, system_prompt: str) -> DeckSpec:
         self.calls.append((user_request, system_prompt))
-        return self.deck
+        return cast(DeckSpec, self.deck)
 
 
 def load_sample_deck() -> DeckSpec:
@@ -69,8 +71,8 @@ def test_unsupported_page_count_is_rejected_before_provider_call() -> None:
 
 
 def test_planner_revalidates_provider_result() -> None:
-    invalid_deck = load_sample_deck().model_copy(deep=True)
-    object.__setattr__(invalid_deck.slides[1], "layout", "unsupported")
+    invalid_deck = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    invalid_deck["slides"][1]["layout"] = "unsupported"
     provider = FakeProvider(invalid_deck)
 
     with pytest.raises(LLMInvalidOutputError, match="DeckSpec 不合法"):

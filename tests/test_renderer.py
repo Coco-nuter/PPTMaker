@@ -6,7 +6,7 @@ from pptx import Presentation
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
-from models import DeckSpec
+from models import BulletsSlideSpec, DeckSpec
 from pptx_renderer import (
     HORIZONTAL_MARGIN,
     SLIDE_HEIGHT,
@@ -15,7 +15,7 @@ from pptx_renderer import (
     render_deck,
 )
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "basic_deck.json"
 
 
 def load_sample_deck() -> DeckSpec:
@@ -79,10 +79,12 @@ def test_rendered_text_matches_sample_deck(tmp_path: Path) -> None:
 
     for slide in deck.slides:
         assert slide.title in rendered_text
-        if slide.subtitle:
-            assert slide.subtitle in rendered_text
-        for bullet in slide.bullets:
-            assert bullet in rendered_text
+        subtitle = getattr(slide, "subtitle", None)
+        if subtitle:
+            assert subtitle in rendered_text
+        if isinstance(slide, BulletsSlideSpec):
+            for bullet in slide.bullets:
+                assert bullet in rendered_text
 
 
 def test_text_uses_theme_fonts_and_shapes_stay_inside_safe_area(tmp_path: Path) -> None:

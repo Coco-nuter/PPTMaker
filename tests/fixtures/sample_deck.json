@@ -1,9 +1,9 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "deck_id": "deck_sample",
-  "title": "AI PPT Agent 项目介绍",
+  "title": "AI PPT Agent 视觉结构示例",
   "audience": "项目评审人员",
-  "purpose": "说明产品目标、核心能力和下一步安排",
+  "purpose": "验证九种本地可绘制页面结构的数据合同",
   "language": "zh-CN",
   "aspect_ratio": "16:9",
   "theme": {
@@ -15,54 +15,140 @@
     "heading_font": "Microsoft YaHei",
     "body_font": "Microsoft YaHei"
   },
-  "sources": [
-    {
-      "source_id": "source_brief",
-      "display_name": "项目需求说明",
-      "source_type": "markdown",
-      "relative_path": "materials/project_brief.md"
-    }
-  ],
-  "assets": [
-    {
-      "asset_id": "asset_cover",
-      "display_name": "封面示意图",
-      "media_type": "image/png",
-      "relative_path": "assets/cover.png",
-      "alt_text": "蓝色抽象演示文稿图形"
-    }
-  ],
   "slides": [
     {
       "slide_id": "slide_cover",
       "layout": "cover",
       "title": "AI PPT Agent",
-      "subtitle": "用自然语言创建可编辑演示文稿",
-      "asset_ids": [
-        "asset_cover"
-      ],
-      "notes": "介绍项目愿景。"
+      "subtitle": "纯文字生成原生可编辑演示文稿"
     },
     {
-      "slide_id": "slide_capabilities",
+      "slide_id": "slide_section",
+      "layout": "section",
+      "title": "产品方案",
+      "subtitle": "从内容规划进入视觉表达",
+      "section_number": "01"
+    },
+    {
+      "slide_id": "slide_bullets",
       "layout": "bullets",
-      "title": "核心能力",
+      "title": "核心原则",
+      "subtitle": "结构化内容驱动确定性绘制",
       "bullets": [
-        "通过自然语言描述演示目标",
-        "使用结构化数据保证内容可验证",
-        "保留稳定页面标识以支持后续修改"
+        "DeepSeek 只生成结构化内容",
+        "程序统一控制布局和主题",
+        "输出保留 PowerPoint 原生对象"
+      ]
+    },
+    {
+      "slide_id": "slide_two_column",
+      "layout": "two_column",
+      "title": "职责清晰分离",
+      "left_title": "DeepSeek",
+      "left_items": [
+        "规划整体故事线",
+        "选择受支持布局",
+        "生成页面内容"
       ],
-      "source_ids": [
-        "source_brief"
-      ],
-      "notes": "本页内容来自项目需求说明。"
+      "right_title": "本地程序",
+      "right_items": [
+        "校验 DeckSpec",
+        "计算对象位置",
+        "绘制可编辑 PPTX"
+      ]
+    },
+    {
+      "slide_id": "slide_metrics",
+      "layout": "metrics",
+      "title": "MVP 交付指标",
+      "metrics": [
+        {
+          "value": "9 种",
+          "label": "页面布局",
+          "description": "覆盖常见纯文字汇报结构"
+        },
+        {
+          "value": "100%",
+          "label": "原生对象",
+          "description": "核心内容可在 PowerPoint 中编辑"
+        },
+        {
+          "value": "1920×1080",
+          "label": "预览尺寸",
+          "description": "由 PowerPoint 导出真实页面"
+        }
+      ]
+    },
+    {
+      "slide_id": "slide_timeline",
+      "layout": "timeline",
+      "title": "实现路径",
+      "items": [
+        {
+          "label": "阶段一",
+          "title": "定义合同",
+          "description": "建立九种布局的严格数据模型"
+        },
+        {
+          "label": "阶段二",
+          "title": "本地绘制",
+          "description": "使用原生形状实现确定性版式"
+        },
+        {
+          "label": "阶段三",
+          "title": "模型接入",
+          "description": "让 DeepSeek 输出合法视觉结构"
+        }
+      ]
+    },
+    {
+      "slide_id": "slide_process",
+      "layout": "process",
+      "title": "生成流程",
+      "steps": [
+        {
+          "title": "输入需求",
+          "description": "用户描述主题、受众、用途和页数"
+        },
+        {
+          "title": "确认大纲",
+          "description": "检查页面顺序、布局和主要内容"
+        },
+        {
+          "title": "生成文件",
+          "description": "绘制 PPTX 并导出真实 PNG 预览"
+        }
+      ]
+    },
+    {
+      "slide_id": "slide_comparison",
+      "layout": "comparison",
+      "title": "方案对比",
+      "left_title": "整页图片",
+      "right_title": "原生对象",
+      "rows": [
+        {
+          "label": "可编辑性",
+          "left_value": "难以编辑",
+          "right_value": "逐对象编辑"
+        },
+        {
+          "label": "预览一致性",
+          "left_value": "依赖近似渲染",
+          "right_value": "PowerPoint 实际导出"
+        },
+        {
+          "label": "后续加工",
+          "left_value": "调整空间有限",
+          "right_value": "可继续排版"
+        }
+      ]
     },
     {
       "slide_id": "slide_closing",
       "layout": "closing",
       "title": "谢谢",
-      "subtitle": "欢迎提出问题",
-      "notes": "结束并进入问答。"
+      "subtitle": "开始生成第一份原生可编辑 PPT"
     }
   ]
 }

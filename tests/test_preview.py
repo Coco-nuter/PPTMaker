@@ -18,7 +18,7 @@ from models import DeckSpec
 from pptx_renderer import render_deck
 from preview import PreviewError, _powerpoint_worker, pptx_to_pngs
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "basic_deck.json"
 
 
 def render_sample_pptx(directory: Path) -> Path:

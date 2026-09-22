@@ -20,7 +20,7 @@ from llm import (
 )
 from models import DeckSpec
 
-FIXTURE_PATH = Path(__file__).parent / "fixtures" / "sample_deck.json"
+FIXTURE_PATH = Path(__file__).parent / "fixtures" / "basic_deck.json"
 
 
 def load_sample_deck() -> DeckSpec:
