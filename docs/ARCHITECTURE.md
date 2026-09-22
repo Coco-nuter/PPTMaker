@@ -97,7 +97,7 @@ UI 只依赖工作流接口；模型 SDK、`python-pptx` 和 COM 分别限制在
 
 模型不得输出任意坐标、磁盘路径、图片 URL 或 PowerPoint 内部对象 ID。渲染器根据布局目录决定准确坐标、尺寸、边距、字号和降级规则。
 
-`DeckSpec` 2.0 使用 `layout` 作为 discriminator，由九个独立页面模型组成：`cover`、`section`、`bullets`、`two_column`、`metrics`、`timeline`、`process`、`comparison`、`closing`。当前渲染器仍只实现 `cover`、`bullets`、`closing`；其余布局在下一阶段实现本地绘制。`image_text`、`full_image` 和 `chart` 不得进入 MVP。
+`DeckSpec` 2.0 使用 `layout` 作为 discriminator，由九个独立页面模型组成：`cover`、`section`、`bullets`、`two_column`、`metrics`、`timeline`、`process`、`comparison`、`closing`。渲染器已为全部九种布局实现确定性本地绘制；`image_text`、`full_image` 和 `chart` 不得进入 MVP。
 
 `SourceRef`、`AssetRef`、Deck 级 `sources`/`assets` 和页面级 `source_ids`/`asset_ids` 已从数据合同删除。
 

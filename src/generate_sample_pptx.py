@@ -1,4 +1,4 @@
-"""从仓库 fixture 生成三页示例 PPTX。"""
+"""从仓库 fixture 生成包含九种布局的示例 PPTX。"""
 
 from pathlib import Path
 
@@ -6,7 +6,7 @@ from models import DeckSpec
 from pptx_renderer import render_deck
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "basic_deck.json"
+FIXTURE_PATH = PROJECT_ROOT / "tests" / "fixtures" / "sample_deck.json"
 OUTPUT_PATH = PROJECT_ROOT / "output" / "sample_deck.pptx"
 
 
